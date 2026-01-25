@@ -1,39 +1,39 @@
-from http.server import BaseHTTPRequestHandler
 import json
-import yt_dlp
+from http.server import BaseHTTPRequestHandler
+import urllib.request
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        data = json.loads(post_data)
-        video_url = data.get('url')
-
-        ydl_opts = {
-            'format': 'best', # طلب أفضل جودة
-            'quiet': True,
-            'no_warnings': True,
-            # محاكاة متصفح حقيقي لتقليل احتمالية الحظر
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': 'https://www.tiktok.com/',
-            }
-        }
+        input_url = json.loads(post_data).get('url')
 
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # استخراج البيانات فقط دون تحميل
-                info = ydl.extract_info(video_url, download=False)
-                # تيك توك يضع الرابط النقي أحياناً في 'url' أو 'formats'
-                direct_link = info.get('url')
+            # 1. المرحلة الأولى: فك تشفير الرابط المختصر خلف الكواليس
+            # نستخدم User-Agent محترف لمنع الحظر أثناء التتبع
+            req = urllib.request.Request(
+                input_url, 
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            )
+            
+            with urllib.request.urlopen(req) as resp:
+                # هذا هو الرابط الطويل الحقيقي بعد التوجيه
+                final_long_url = resp.geturl()
+
+            # 2. المرحلة الثانية: إرسال الرابط الطويل لـ TikWM
+            api_url = f"https://www.tikwm.com/api/?url={final_long_url}"
+            api_req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+            
+            with urllib.request.urlopen(api_req) as api_resp:
+                data = json.loads(api_resp.read().decode())
                 
+            # إرجاع النتيجة النهائية
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({'download_link': direct_link}).encode())
+            self.wfile.write(json.dumps({'download_link': data['data']['play']}).encode())
+            
         except Exception as e:
             self.send_response(500)
             self.end_headers()
-            self.wfile.write(json.dumps({'error': "تيك توك يرفض الطلب حالياً، جرب رابطاً آخر"}).encode())
+            self.wfile.write(json.dumps({'error': "فشل في تتبع الرابط، تأكد من صحته"}).encode())
