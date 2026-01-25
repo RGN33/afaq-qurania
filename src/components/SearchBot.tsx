@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Search, Bot, Palette, ArrowRight, Video, Loader2, CheckCircle, Sparkles } from 'lucide-react';
+import { Search, Bot, Palette, ArrowRight, Video, Loader2, CheckCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -20,9 +20,12 @@ export function SearchBot() {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState('');
   const [videoResult, setVideoResult] = useState<string | null>(null);
+  const [originalUrl, setOriginalUrl] = useState<string>('');
 
   const { data: resources } = useResources();
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingRef = useRef(false); // لمنع الضغط المتكرر
+  const lastPasteTimeRef = useRef(0); // لتتبع وقت اللصق الأخير
 
   // منطق البحث الذكي
   const searchResults = useMemo(() => {
@@ -47,8 +50,44 @@ export function SearchBot() {
     }
   }, [query, isSubmitting]);
 
-  // ✨ محرك التحميل الذكي (يدعم الروابط المختصرة VT)
+  // ✨ حل مشكلة الروابط المختصرة خلف الكواليس
+  const resolveTikTokUrl = useCallback(async (url: string): Promise<string> => {
+    try {
+      // إذا كان الرابط قصيراً (vt.tiktok.com)، نحوله إلى رابط طويل
+      if (url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')) {
+        setStatusText("جاري تحويل الرابط المختصر...");
+        
+        // محاولة الحصول على الرابط النهائي عبر fetch
+        const response = await fetch(url, {
+          method: 'HEAD',
+          redirect: 'manual',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        
+        // البحث عن الرابط النهائي في headers
+        const location = response.headers.get('location');
+        if (location && location.includes('tiktok.com')) {
+          return location;
+        }
+        
+        // إذا لم نجد، نعيد الرابط الأصلي
+        return url;
+      }
+      
+      return url;
+    } catch (error) {
+      console.log('فشل تحويل الرابط، سيتم استخدام الرابط الأصلي:', error);
+      return url;
+    }
+  }, []);
+
+  // ✨ محرك التحميل الذكي المحسن
   const handleTikTokDownload = useCallback(async () => {
+    // منع الضغط المتكرر
+    if (isProcessingRef.current || !tiktokUrl.trim()) return;
+    
     let cleanUrl = tiktokUrl.trim();
     
     if (!cleanUrl.includes('tiktok.com')) {
@@ -56,28 +95,57 @@ export function SearchBot() {
       return;
     }
 
+    // تفعيل قفل المعالجة
+    isProcessingRef.current = true;
     setIsDownloading(true);
     setVideoResult(null);
     setProgress(5);
+    setOriginalUrl(cleanUrl);
 
-    // ⏳ تايمر وهمي احترافي متفاعل مع نوع الرابط
+    // ⏳ تايمر وهمي احترافي
     const isShortLink = cleanUrl.includes('vt.tiktok.com');
-    setStatusText(isShortLink ? "جاري فك تشفير الرابط المختصر..." : "جاري الاتصال بالسيرفر...");
+    setStatusText(isShortLink ? "جاري تحويل الرابط المختصر..." : "جاري الاتصال بالسيرفر...");
 
     // تنظيف أي مؤقت سابق
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
 
     progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => (prev >= 90 ? prev : prev + 5));
-    }, 300);
+      setProgress((prev) => {
+        if (prev >= 90) {
+          return prev;
+        }
+        // تسريع التقدم في البداية، ثم إبطاءه
+        return prev + (prev < 40 ? 8 : 4);
+      });
+    }, 350);
 
     try {
-      // إرسال الرابط للـ API (الأداة تتعامل مع الـ Redirects بشكل أفضل عند إرسالها كـ Param)
-      const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`);
+      // 🔧 الخطوة 1: حل الروابط المختصرة
+      let resolvedUrl = cleanUrl;
+      if (isShortLink) {
+        resolvedUrl = await resolveTikTokUrl(cleanUrl);
+        setProgress(25);
+        setStatusText("تم تحويل الرابط، جاري الاستخراج...");
+      }
+
+      // 🔧 الخطوة 2: استخراج الفيديو باستخدام API
+      setStatusText("جاري فك تشفير الفيديو...");
+      
+      // محاولة باستخدام tikwm API
+      const apiUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(resolvedUrl)}`;
+      const res = await fetch(apiUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
       const data = await res.json();
 
+      // تنظيف المؤقت
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
@@ -86,30 +154,66 @@ export function SearchBot() {
       if (data.code === 0 && data.data.play) {
         setProgress(100);
         setStatusText("اكتمل الاستخراج بنجاح!");
+        
+        // تأخير قصير لإظهار 100%
         setTimeout(() => {
           setVideoResult(data.data.play);
           setIsDownloading(false);
+          isProcessingRef.current = false;
           toast.success("تم تجهيز الفيديو بدون علامة مائية");
-        }, 500);
+        }, 600);
       } else {
-        throw new Error("Failed to Fetch");
+        throw new Error("فشل في استخراج الفيديو");
       }
     } catch (error) {
+      // تنظيف المؤقت في حالة الخطأ
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
+      
       setIsDownloading(false);
+      isProcessingRef.current = false;
       setProgress(0);
       
+      // رسالة خطأ ذكية مع حلول
       toast.error(
-        <div className="text-right">
+        <div className="text-right space-y-2">
           <p className="font-bold">فشل الاستخراج</p>
-          <p className="text-[10px]">الروابط المختصرة (vt) أحياناً يحظرها تيك توك، جرب الرابط الطويل من المتصفح.</p>
-        </div>
+          <div className="text-xs space-y-1">
+            <p>• جرب الرابط الطويل من متصفح سطح المكتب</p>
+            <p>• تأكد أن الفيديو ليس خاصاً (Private)</p>
+            <p>• جرب إعادة تحميل الصفحة والمحاولة مرة أخرى</p>
+          </div>
+        </div>,
+        {
+          duration: 5000
+        }
       );
     }
-  }, [tiktokUrl]);
+  }, [tiktokUrl, resolveTikTokUrl]);
+
+  // معالجة اللصق في حقل الإدخال (حل مشكلة الهاتف)
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLInputElement>) => {
+    // منع اللصق السريع المتكرر
+    const now = Date.now();
+    if (now - lastPasteTimeRef.current < 1000) {
+      e.preventDefault();
+      toast.info("يرجى الانتظار قليلاً قبل اللصق مرة أخرى");
+      return;
+    }
+    lastPasteTimeRef.current = now;
+    
+    const pastedText = e.clipboardData.getData('text');
+    setTiktokUrl(pastedText);
+    
+    // إظهار رسالة تأكيد
+    setTimeout(() => {
+      if (pastedText.includes('tiktok.com')) {
+        toast.success("تم التعرف على رابط تيك توك");
+      }
+    }, 100);
+  }, []);
 
   // تنظيف المؤقت عند فك التركيب
   useEffect(() => {
@@ -126,6 +230,7 @@ export function SearchBot() {
     setTiktokUrl('');
     setProgress(0);
     setStatusText('');
+    isProcessingRef.current = false;
   }, []);
 
   // معالجة تغيير البحث
@@ -138,6 +243,35 @@ export function SearchBot() {
   const toggleShowMoreTools = useCallback(() => {
     setShowMoreTools(prev => !prev);
   }, []);
+
+  // فتح الرابط في نافذة جديدة مع تحسينات للهاتف
+  const openVideoLink = useCallback(() => {
+    if (!videoResult) return;
+    
+    // إنشاء رابط قابل للتنزيل
+    const downloadLink = document.createElement('a');
+    downloadLink.href = videoResult;
+    downloadLink.target = '_blank';
+    downloadLink.rel = 'noopener noreferrer';
+    downloadLink.download = 'tiktok-video.mp4';
+    
+    // إضافة نص تحفيزي للهاتف
+    toast.info(
+      <div className="text-right space-y-1">
+        <p className="font-bold">جاري فتح الفيديو</p>
+        <p className="text-xs">اضغط على "تحميل" أو "Download" في المتصفح</p>
+      </div>,
+      { duration: 3000 }
+    );
+    
+    // فتح الرابط
+    downloadLink.click();
+    
+    // إعادة تعيين بعد فترة
+    setTimeout(() => {
+      resetTikTokState();
+    }, 2000);
+  }, [videoResult, resetTikTokState]);
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 space-y-5 text-right" dir="rtl">
@@ -155,9 +289,13 @@ export function SearchBot() {
             value={query} 
             onChange={handleQueryChange}
             placeholder="ابحث عن ملحقاتك..." 
-            className="h-14 bg-background/50 border-primary/20" 
+            className="h-14 bg-background/50 border-primary/20 focus:border-primary/40" 
+            onKeyDown={(e) => e.key === 'Enter' && query.trim() && setHasSearched(true)}
           />
-          <Button onClick={() => query.trim() && setHasSearched(true)} className="h-14 px-8">
+          <Button 
+            onClick={() => query.trim() && setHasSearched(true)} 
+            className="h-14 px-8 bg-primary hover:bg-primary/90 active:scale-95 transition-transform"
+          >
             <Search className="h-5 w-5" />
           </Button>
         </div>
@@ -177,7 +315,7 @@ export function SearchBot() {
                 <Button 
                   onClick={handleSubmitRequest} 
                   disabled={isSubmitting} 
-                  className="w-full h-14 rounded-xl"
+                  className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 active:scale-[0.98] transition-transform"
                 >
                   {isSubmitting ? 'جاري الإرسال...' : 'أرسل طلب للأدمن'}
                 </Button>
@@ -188,7 +326,14 @@ export function SearchBot() {
       </motion.div>
 
       {/* 2. مستخرج الألوان */}
-      <Link to="/color-extractor" className="group block glass-card rounded-2xl p-4 border border-primary/20 hover:border-primary/40 transition-all shadow-md">
+      <Link 
+        to="/color-extractor" 
+        className="group block glass-card rounded-2xl p-4 border border-primary/20 hover:border-primary/40 transition-all shadow-md active:scale-[0.98]"
+        onClick={(e) => {
+          // منع النقر السريع المتكرر على الهاتف
+          if (e.detail > 1) e.preventDefault();
+        }}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform">
@@ -212,13 +357,13 @@ export function SearchBot() {
           variant="outline" 
           size="sm" 
           onClick={toggleShowMoreTools} 
-          className="rounded-full bg-background px-6 text-[10px] font-bold z-10 border-border hover:text-primary transition-colors"
+          className="rounded-full bg-background px-6 text-[10px] font-bold z-10 border-border hover:text-primary transition-colors active:scale-95"
         >
           {showMoreTools ? "إخفاء الأدوات" : "المزيد من الأدوات"}
         </Button>
       </div>
 
-      {/* 3. محمل تيك توك المطور (يدعم VT و PC) */}
+      {/* 3. محمل تيك توك المطور والمحسن */}
       <AnimatePresence>
         {showMoreTools && (
           <motion.div 
@@ -230,7 +375,7 @@ export function SearchBot() {
             <div className="flex flex-col gap-5 text-right">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center text-white shadow-lg">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FE2C55] to-black flex items-center justify-center text-white shadow-lg">
                     <Video className="h-6 w-6" />
                   </div>
                   <div>
@@ -241,20 +386,25 @@ export function SearchBot() {
                 {isDownloading && <Loader2 className="h-5 w-5 animate-spin text-pink-500" />}
               </div>
 
-              {/* شريط التقدم الوهمي */}
+              {/* شريط التقدم الوهمي المحسن */}
               <AnimatePresence>
                 {isDownloading && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
+                    className="overflow-hidden space-y-2"
                   >
-                    <div className="w-full bg-pink-500/10 h-1.5 rounded-full overflow-hidden">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-pink-500 font-medium">{statusText}</span>
+                      <span className="font-bold">{progress}%</span>
+                    </div>
+                    <div className="w-full bg-pink-500/10 h-2.5 rounded-full overflow-hidden">
                       <motion.div 
-                        className="h-full bg-pink-500" 
-                        animate={{ width: `${progress}%` }} 
-                        transition={{ duration: 0.3 }}
+                        className="h-full bg-gradient-to-r from-[#FE2C55] to-pink-400" 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
                       />
                     </div>
                   </motion.div>
@@ -264,45 +414,76 @@ export function SearchBot() {
               {!videoResult ? (
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Input 
-                    placeholder="ضع رابط (vt.tiktok) أو الرابط العادي..." 
-                    className="h-14 text-sm sm:text-base bg-background/50 border-pink-500/10" 
+                    placeholder="الصق رابط تيك توك هنا..." 
+                    className="h-14 text-sm sm:text-base bg-background/50 border-pink-500/10 focus:border-pink-500/30" 
                     value={tiktokUrl} 
                     onChange={(e) => setTiktokUrl(e.target.value)}
+                    onPaste={handlePaste}
                     disabled={isDownloading}
                   />
                   <Button 
                     onClick={handleTikTokDownload} 
-                    disabled={isDownloading || !tiktokUrl} 
-                    className="bg-[#FE2C55] h-14 w-full sm:w-28 shadow-lg shadow-pink-500/20 active:scale-95 transition-all font-bold"
+                    disabled={isDownloading || !tiktokUrl.trim()} 
+                    className="h-14 w-full sm:w-auto bg-gradient-to-r from-[#FE2C55] to-pink-600 shadow-lg shadow-pink-500/20 active:scale-95 transition-all font-bold disabled:opacity-50"
                   >
-                    {isDownloading ? <Sparkles className="animate-pulse h-5 w-5" /> : "استخراج"}
+                    {isDownloading ? (
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="animate-pulse h-5 w-5" />
+                        <span>جاري الاستخراج</span>
+                      </div>
+                    ) : "استخراج الفيديو"}
                   </Button>
                 </div>
               ) : (
                 <motion.div 
                   initial={{ y: 20, opacity: 0 }} 
-                  animate={{ y: 0, opacity: 1 }} 
-                  className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col gap-3"
+                  animate={{ y: 0, opacity: 1 }}
+                  className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/30 rounded-2xl space-y-4"
                 >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-xs font-bold text-green-700">تم فك تشفير الرابط بنجاح!</span>
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                    <div>
+                      <h5 className="text-sm font-bold text-green-700">تم استخراج الفيديو بنجاح!</h5>
+                      <p className="text-xs text-green-600 mt-1">بدون علامة مائية وبجودة عالية</p>
+                    </div>
                   </div>
-                  <Button 
-                    className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg"
-                    onClick={() => { 
-                      window.open(videoResult, '_blank');
-                      resetTikTokState();
-                    }}
-                  >
-                    تحميل الفيديو الآن
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      className="h-14 flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-green-500/20 active:scale-95"
+                      onClick={openVideoLink}
+                    >
+                      <div className="flex items-center gap-2 justify-center">
+                        <ExternalLink className="h-4 w-4" />
+                        <span>تحميل الفيديو الآن</span>
+                      </div>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="h-14 rounded-xl border-green-500/30 hover:border-green-500/50 active:scale-95"
+                      onClick={resetTikTokState}
+                    >
+                      رابط جديد
+                    </Button>
+                  </div>
                 </motion.div>
               )}
               
-              <p className="text-[9px] text-muted-foreground text-center bg-pink-500/5 py-1 rounded-lg">
-                * الروابط المختصرة (vt) قد تستغرق وقتاً أطول قليلاً للمعالجة
-              </p>
+              {/* نصائح للمستخدم */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-center space-y-1"
+              >
+                <p className="text-[10px] text-muted-foreground bg-pink-500/5 py-2 px-3 rounded-lg">
+                  <span className="font-bold text-pink-500">💡 نصائح:</span> يدعم الروابط المختصرة • يعمل على جميع الأجهزة • يفضل استخدام شبكة Wi-Fi
+                </p>
+                {originalUrl.includes('vt.') && (
+                  <p className="text-[9px] text-amber-600 bg-amber-500/10 py-1 px-2 rounded">
+                    🔄 تم تحويل الرابط المختصر تلقائياً
+                  </p>
+                )}
+              </motion.div>
             </div>
           </motion.div>
         )}
