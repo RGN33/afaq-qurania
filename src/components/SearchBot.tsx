@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, Bot, Palette, ArrowRight, Video, Download, Loader2, PlusCircle, CheckCircle, ExternalLink, AlertTriangle } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, Bot, Palette, ArrowRight, Video, Download, Loader2, PlusCircle, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -15,15 +15,15 @@ export function SearchBot() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMoreTools, setShowMoreTools] = useState(false);
   
-  // حالات محمل تيك توك المتقدمة
+  // حالات محمل تيك توك (النسخة الاحترافية)
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadStep, setDownloadStep] = useState('');
-  const [finalVideoLink, setFinalVideoLink] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState('');
+  const [videoResult, setVideoResult] = useState<string | null>(null);
 
   const { data: resources } = useResources();
 
-  // 1. منطق البحث الذكي (عربي وإنجليزي)
   const searchResults = useMemo(() => {
     if (!query.trim() || !resources) return [];
     const q = query.toLowerCase();
@@ -32,72 +32,83 @@ export function SearchBot() {
     );
   }, [query, resources]);
 
-  // 2. إرسال طلب للأدمن عند عدم وجود نتائج
+  // دالة إرسال طلب للأدمن
   const handleSubmitRequest = async () => {
     if (!query.trim() || isSubmitting) return;
     setIsSubmitting(true);
     try {
       await supabase.from('requests').insert({ search_query: query.trim() });
-      toast.success("تم إرسال طلبك للأدمن بنجاح");
-    } catch { toast.error("فشل إرسال الطلب"); }
+      toast.success("تم إرسال طلبك بنجاح");
+    } catch { toast.error("فشل الإرسال"); }
     finally { setIsSubmitting(false); }
   };
 
-  // 3. ✨ دالة التحميل الذكية (حل مشكلة الفشل على الموبايل)
+  // ✨ محرك التحميل المطور (التايمر الوهمي + حل مشكلة الموبايل)
   const handleTikTokDownload = async () => {
     if (!tiktokUrl.includes('tiktok.com')) {
-      toast.error("يرجى إدخال رابط تيك توك صحيح");
+      toast.error("يرجى إدخال رابط تيك توك صحيح يا عمر");
       return;
     }
 
     setIsDownloading(true);
-    setFinalVideoLink(null); // مسح الرابط القديم
-    setDownloadStep("جاري تخطي الحظر واستخراج الفيديو...");
+    setVideoResult(null);
+    setProgress(0);
+    setStatusText("جاري الاتصال بالسيرفر...");
+
+    // ⏳ شريط تقدم وهمي احترافي
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) return prev;
+        return prev + (prev < 40 ? 10 : 5);
+      });
+    }, 400);
 
     try {
-      // نكلم الـ API الجاهز مباشرة
+      setStatusText("جاري فك تشفير الرابط...");
       const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`);
-      const responseData = await res.json();
+      const data = await res.json();
 
-      if (responseData.code === 0 && responseData.data.play) {
-        // بدلاً من window.open، نحفظ الرابط ليظهر في زر التحميل
-        setFinalVideoLink(responseData.data.play);
-        toast.success("تم تجهيز الفيديو! اضغط على زر التحميل بالأسفل");
+      clearInterval(interval);
+
+      if (data.code === 0 && data.data.play) {
+        setProgress(100);
+        setStatusText("اكتمل الاستخراج بنجاح!");
+        setTimeout(() => {
+          setVideoResult(data.data.play);
+          setIsDownloading(false);
+          toast.success("الفيديو جاهز للتحميل");
+        }, 500);
       } else {
-        toast.error("فشل الاستخراج، قد يكون الفيديو خاصاً أو محذوفاً");
+        throw new Error("API Limit or Private Video");
       }
     } catch (error) {
-      toast.error("حدث خطأ في الاتصال، جرب مرة أخرى");
-    } finally {
+      clearInterval(interval);
       setIsDownloading(false);
-      setDownloadStep("");
+      setProgress(0);
+      toast.error("فشل الاستخراج. تأكد أن الحساب ليس خاصاً (Private) وجرب مجدداً.");
     }
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 space-y-6 text-right" dir="rtl">
+    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 space-y-5 text-right" dir="rtl">
       
-      {/* 1. مساعد البحث الرئيسي (كبير وسهل اللمس) */}
-      <motion.div layout className="glass-card rounded-3xl p-6 border border-primary/10 shadow-2xl">
+      {/* 1. مساعد البحث الرئيسي */}
+      <motion.div layout className="glass-card rounded-3xl p-6 border border-primary/10 shadow-xl">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-            <Bot className="h-6 w-6" />
-          </div>
-          <h3 className="font-bold text-lg">مساعد البحث</h3>
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"><Bot /></div>
+          <h3 className="font-bold text-base sm:text-lg">مساعد البحث الذكي</h3>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex gap-2">
           <Input 
             value={query} 
             onChange={(e) => {setQuery(e.target.value); setHasSearched(false);}} 
-            placeholder="ابحث عن ملحقاتك (خطوط، فيديوهات...)" 
-            className="h-14 text-base bg-background/50 border-primary/20" 
+            placeholder="ابحث عن ملحقاتك..." 
+            className="h-12 sm:h-14 text-sm sm:text-base bg-background/50 border-primary/20" 
           />
-          <Button onClick={() => setHasSearched(true)} className="h-14 px-8 shadow-lg shadow-primary/20">
+          <Button onClick={() => setHasSearched(true)} className="h-12 sm:h-14 px-6 sm:px-8">
             <Search className="h-5 w-5" />
           </Button>
         </div>
-        
-        {/* نتائج البحث */}
         <AnimatePresence>
           {hasSearched && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-5 overflow-hidden">
@@ -106,68 +117,83 @@ export function SearchBot() {
                   {searchResults.slice(0, 4).map((res) => <ResourceCard key={res.id} resource={res} compact />)}
                 </div>
               ) : (
-                <div className="text-center p-4 bg-secondary/20 rounded-2xl">
-                  <p className="text-sm mb-3 italic">غير متوفر؟ اطلبه من الأدمن فوراً!</p>
-                  <Button onClick={handleSubmitRequest} disabled={isSubmitting} className="w-full">إرسال طلب للأدمن</Button>
-                </div>
+                <Button onClick={handleSubmitRequest} disabled={isSubmitting} className="w-full h-12 rounded-xl">أرسل طلب للأدمن</Button>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
 
-      {/* 2. أداة مستخرج الألوان */}
-      <Link to="/color-extractor" className="group block glass-card rounded-2xl p-5 border border-primary/20 hover:border-primary/50 transition-all shadow-md">
+      {/* 2. مستخرج الألوان */}
+      <Link to="/color-extractor" className="group block glass-card rounded-2xl p-4 border border-primary/20 hover:border-primary/40 transition-all shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg group-hover:rotate-12 transition-transform">
-              <Palette className="h-6 w-6" />
+              <Palette />
             </div>
             <div>
-              <h4 className="font-bold">مستخرج الألوان الإسلامي</h4>
-              <p className="text-[10px] text-muted-foreground">استخرج باليتة ألوان احترافية من أي صورة</p>
+              <h4 className="font-bold text-sm sm:text-base">مستخرج الألوان الإسلامي</h4>
+              <p className="text-[10px] text-muted-foreground">حول صورك لباليتة ألوان احترافية</p>
             </div>
           </div>
           <ArrowRight className="h-5 w-5 text-primary rotate-180" />
         </div>
       </Link>
 
-      {/* 3. زر "المزيد من الأدوات" (فاصل جمالي) */}
+      {/* زر المزيد */}
       <div className="relative py-2 flex justify-center">
         <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-        <Button variant="outline" onClick={() => setShowMoreTools(!showMoreTools)} className="rounded-full bg-background px-6 text-xs z-10 border-border">
-          {showMoreTools ? "إخفاء الأدوات الإضافية" : "المزيد من الأدوات"}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowMoreTools(!showMoreTools)} 
+          className="rounded-full bg-background px-6 text-[10px] font-bold z-10 border-border hover:text-primary transition-colors"
+        >
+          {showMoreTools ? "إخفاء الأدوات" : "المزيد من الأدوات"}
         </Button>
       </div>
 
-      {/* 4. ✨ محمل تيك توك المطور (حل مشكلة الموبايل الجذرية) */}
+      {/* 3. ✨ محمل تيك توك (النسخة الاحترافية المحدثة) */}
       <AnimatePresence>
         {showMoreTools && (
           <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 10 }} 
-            className="p-6 glass-card rounded-3xl border border-pink-500/20 bg-gradient-to-br from-pink-500/5 to-transparent shadow-xl"
+            initial={{ opacity: 0, scale: 0.95 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.95 }} 
+            className="p-6 glass-card rounded-3xl border border-pink-500/20 bg-gradient-to-br from-pink-500/5 to-transparent shadow-xl relative overflow-hidden"
           >
             <div className="flex flex-col gap-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center text-white shadow-lg">
-                    <Video className="h-6 w-6" />
-                  </div>
+                  <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center text-white shadow-lg"><Video /></div>
                   <div>
-                    <h4 className="font-bold">محمل تيك توك الذكي</h4>
-                    {isDownloading && <p className="text-[10px] text-pink-500 animate-pulse mt-1">{downloadStep}</p>}
+                    <h4 className="font-bold text-sm sm:text-base">محمل تيك توك الذكي</h4>
+                    <p className="text-[10px] text-muted-foreground">بدون علامة مائية وبجودة عالية</p>
                   </div>
                 </div>
+                {isDownloading && <Loader2 className="h-5 w-5 animate-spin text-pink-500" />}
               </div>
 
-              {/* إذا لم يتم استخراج الرابط بعد، نظهر حقل الإدخال */}
-              {!finalVideoLink ? (
+              {/* شريط التقدم الوهمي المحسن */}
+              <AnimatePresence>
+                {isDownloading && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold text-pink-500">
+                      <span>{statusText}</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="w-full bg-pink-500/10 h-2 rounded-full overflow-hidden">
+                      <motion.div className="h-full bg-pink-500" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {!videoResult ? (
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Input 
                     placeholder="ضع رابط الفيديو هنا..." 
-                    className="h-14 text-sm bg-background/50 border-pink-500/10" 
+                    className="h-14 text-sm sm:text-base bg-background/50 border-pink-500/10 focus-visible:ring-pink-500/20" 
                     value={tiktokUrl} 
                     onChange={(e) => setTiktokUrl(e.target.value)}
                     disabled={isDownloading}
@@ -175,37 +201,31 @@ export function SearchBot() {
                   <Button 
                     onClick={handleTikTokDownload} 
                     disabled={isDownloading || !tiktokUrl} 
-                    className="bg-[#FE2C55] h-14 w-full sm:w-20 shadow-lg shadow-pink-500/20 active:scale-95 transition-transform"
+                    className="bg-[#FE2C55] h-14 w-full sm:w-24 shadow-lg shadow-pink-500/20 active:scale-95 transition-all font-bold"
                   >
-                    {isDownloading ? <Loader2 className="animate-spin" /> : <Download />}
+                    {isDownloading ? <Sparkles className="animate-pulse h-5 w-5" /> : "استخراج"}
                   </Button>
                 </div>
               ) : (
-                /* ✨ هنا الحل: زر التحميل النهائي الذي لا يمنعه الموبايل */
-                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="space-y-3">
-                  <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 flex items-center gap-3">
-                    <CheckCircle className="text-green-500 h-6 w-6" />
-                    <span className="text-xs font-bold text-green-700">الفيديو جاهز! اضغط الزر بالأسفل لفتحه وتحميله.</span>
+                /* ✨ بطاقة النجاح الأنيقة */
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <span className="text-xs font-bold text-green-700">تم استخراج الفيديو بنجاح!</span>
                   </div>
-                  <Button 
-                    className="w-full h-14 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl shadow-green-500/20 flex gap-2 active:scale-95 transition-all"
-                    onClick={() => { 
-                      window.open(finalVideoLink, '_blank'); 
-                      setFinalVideoLink(null); // تصفير الحالة بعد التحميل
-                      setTiktokUrl('');
-                    }}
-                  >
-                    <Download className="h-5 w-5" /> اضغط هنا للتحميل المباشر
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg"
+                      onClick={() => { window.open(videoResult, '_blank'); setVideoResult(null); setTiktokUrl(''); }}
+                    >
+                      تحميل الآن
+                    </Button>
+                    <Button variant="outline" className="h-12 rounded-xl" onClick={() => { setVideoResult(null); setTiktokUrl(''); }}>
+                      إلغاء
+                    </Button>
+                  </div>
                 </motion.div>
               )}
-              
-              <div className="flex items-start gap-2 bg-yellow-500/5 p-3 rounded-xl border border-yellow-500/10">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                <p className="text-[9px] text-yellow-700 leading-relaxed">
-                  إذا واجهت مشكلة في التحميل على الموبايل، يرجى استخدام متصفح Chrome أو Safari والتأكد من عدم حظر النوافذ المنبثقة.
-                </p>
-              </div>
             </div>
           </motion.div>
         )}
