@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sun, Moon, Menu, X } from 'lucide-react';
+import { Sun, Moon, Menu, X, Bookmark } from 'lucide-react'; // أضفنا Bookmark
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
@@ -31,18 +31,9 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Link
-              to="/"
-              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
-            >
-              الرئيسية
-            </Link>
-          </motion.div>
+          <Link to="/" className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors">
+            الرئيسية
+          </Link>
           {categories?.slice(0, 5).map((category, index) => (
             <motion.div
               key={category.id}
@@ -62,35 +53,22 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <motion.div
-            whileHover={{ rotate: 180 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="rounded-full"
-            >
+          {/* أيقونة المحفوظات الجديدة */}
+          <Link to="/saved">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Bookmark className="h-5 w-5 text-foreground hover:text-primary transition-colors" />
+            </Button>
+          </Link>
+
+          <motion.div whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }}>
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
               <AnimatePresence mode="wait">
                 {theme === 'light' ? (
-                  <motion.div
-                    key="moon"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
                     <Moon className="h-5 w-5" />
                   </motion.div>
                 ) : (
-                  <motion.div
-                    key="sun"
-                    initial={{ rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <motion.div key="sun" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
                     <Sun className="h-5 w-5" />
                   </motion.div>
                 )}
@@ -98,29 +76,14 @@ export function Header() {
             </Button>
           </motion.div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden rounded-full"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
+          <Button variant="ghost" size="icon" className="md:hidden rounded-full" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <AnimatePresence mode="wait">
               {isMenuOpen ? (
-                <motion.div
-                  key="close"
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                >
+                <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
                   <X className="h-5 w-5" />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="menu"
-                  initial={{ rotate: 90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }}
-                >
+                <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
                   <Menu className="h-5 w-5" />
                 </motion.div>
               )}
@@ -136,38 +99,19 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="md:hidden border-t border-border bg-background overflow-hidden"
           >
             <nav className="container py-4 flex flex-col gap-2">
-              <motion.div
-                initial={{ x: 20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Link
-                  to="/"
-                  className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  الرئيسية
+              <Link to="/" className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                الرئيسية
+              </Link>
+              <Link to="/saved" className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                المحفوظات
+              </Link>
+              {categories?.map((category) => (
+                <Link key={category.id} to={`/category/${category.slug}`} className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  {category.name_ar}
                 </Link>
-              </motion.div>
-              {categories?.map((category, index) => (
-                <motion.div
-                  key={category.id}
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 + index * 0.05 }}
-                >
-                  <Link
-                    to={`/category/${category.slug}`}
-                    className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {category.name_ar}
-                  </Link>
-                </motion.div>
               ))}
             </nav>
           </motion.div>
