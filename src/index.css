@@ -1,0 +1,165 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Deep Islamic Green Theme */
+    --background: 120 10% 98%;
+    --foreground: 150 50% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 50% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 50% 10%;
+
+    /* Deep Forest Green */
+    --primary: 150 50% 15%;
+    --primary-foreground: 120 20% 98%;
+
+    --secondary: 120 15% 94%;
+    --secondary-foreground: 150 50% 15%;
+
+    --muted: 120 10% 92%;
+    --muted-foreground: 150 20% 40%;
+
+    --accent: 45 90% 50%;
+    --accent-foreground: 150 50% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 120 15% 88%;
+    --input: 120 15% 88%;
+    --ring: 150 50% 25%;
+
+    --radius: 0.75rem;
+
+    /* Custom Colors */
+    --islamic-green: 150 50% 15%;
+    --islamic-green-light: 150 40% 25%;
+    --islamic-green-dark: 150 60% 10%;
+    --gold: 45 90% 50%;
+    --gold-light: 45 85% 65%;
+    --cream: 40 30% 96%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(150, 50%, 15%), hsl(150, 40%, 25%));
+    --gradient-gold: linear-gradient(135deg, hsl(45, 90%, 50%), hsl(45, 85%, 65%));
+    --gradient-subtle: linear-gradient(180deg, hsl(120, 10%, 98%), hsl(120, 15%, 94%));
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 150 50% 15%;
+    --sidebar-primary: 150 50% 15%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 120 15% 94%;
+    --sidebar-accent-foreground: 150 50% 15%;
+    --sidebar-border: 120 15% 88%;
+    --sidebar-ring: 150 50% 25%;
+  }
+
+  .dark {
+    --background: 150 30% 6%;
+    --foreground: 120 20% 95%;
+
+    --card: 150 25% 10%;
+    --card-foreground: 120 20% 95%;
+
+    --popover: 150 25% 10%;
+    --popover-foreground: 120 20% 95%;
+
+    --primary: 120 30% 75%;
+    --primary-foreground: 150 50% 8%;
+
+    --secondary: 150 20% 15%;
+    --secondary-foreground: 120 20% 90%;
+
+    --muted: 150 20% 15%;
+    --muted-foreground: 120 15% 60%;
+
+    --accent: 45 80% 55%;
+    --accent-foreground: 150 50% 8%;
+
+    --destructive: 0 62.8% 40%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 20% 18%;
+    --input: 150 20% 18%;
+    --ring: 120 30% 60%;
+
+    --islamic-green: 120 35% 70%;
+    --islamic-green-light: 120 30% 80%;
+    --islamic-green-dark: 150 50% 15%;
+    --gold: 45 85% 55%;
+    --gold-light: 45 80% 70%;
+    --cream: 150 20% 12%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(120, 35%, 70%), hsl(120, 30%, 80%));
+    --gradient-gold: linear-gradient(135deg, hsl(45, 85%, 55%), hsl(45, 80%, 70%));
+    --gradient-subtle: linear-gradient(180deg, hsl(150, 30%, 6%), hsl(150, 25%, 10%));
+
+    --sidebar-background: 150 25% 8%;
+    --sidebar-foreground: 120 20% 95%;
+    --sidebar-primary: 120 30% 75%;
+    --sidebar-primary-foreground: 150 50% 8%;
+    --sidebar-accent: 150 20% 15%;
+    --sidebar-accent-foreground: 120 20% 90%;
+    --sidebar-border: 150 20% 18%;
+    --sidebar-ring: 120 30% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground font-cairo antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  .islamic-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23165a4a' fill-opacity='0.05'%3E%3Cpath d='M30 30L0 0v60h60V0L30 30zm0 0L60 60V0H0v60l30-30z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-md border border-border/50 shadow-lg;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  }
+
+  .btn-primary-islamic {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors;
+  }
+
+  .btn-gold {
+    @apply bg-accent text-accent-foreground hover:bg-accent/90 transition-colors;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
