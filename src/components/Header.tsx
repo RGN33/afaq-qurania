@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sun, Moon, Menu, X, Bookmark } from 'lucide-react'; // أضفنا Bookmark
+import { Sun, Moon, Menu, X, Bookmark } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
@@ -18,7 +18,7 @@ export function Header() {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     >
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
         <Link to="/" className="flex items-center gap-2">
           <motion.span
             whileHover={{ scale: 1.05 }}
@@ -52,11 +52,11 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          {/* أيقونة المحفوظات الجديدة */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          {/* أيقونة المحفوظات الجديدة - مدمجة بنفس ستايل الموقع */}
           <Link to="/saved">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <Bookmark className="h-5 w-5 text-foreground hover:text-primary transition-colors" />
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 group">
+              <Bookmark className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
             </Button>
           </Link>
 
@@ -64,11 +64,11 @@ export function Header() {
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full">
               <AnimatePresence mode="wait">
                 {theme === 'light' ? (
-                  <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
+                  <motion.div key="moon" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <Moon className="h-5 w-5" />
                   </motion.div>
                 ) : (
-                  <motion.div key="sun" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
+                  <motion.div key="sun" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
                     <Sun className="h-5 w-5" />
                   </motion.div>
                 )}
@@ -78,15 +78,7 @@ export function Header() {
 
           <Button variant="ghost" size="icon" className="md:hidden rounded-full" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             <AnimatePresence mode="wait">
-              {isMenuOpen ? (
-                <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-                  <X className="h-5 w-5" />
-                </motion.div>
-              ) : (
-                <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-                  <Menu className="h-5 w-5" />
-                </motion.div>
-              )}
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </AnimatePresence>
           </Button>
         </div>
@@ -102,14 +94,10 @@ export function Header() {
             className="md:hidden border-t border-border bg-background overflow-hidden"
           >
             <nav className="container py-4 flex flex-col gap-2">
-              <Link to="/" className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                الرئيسية
-              </Link>
-              <Link to="/saved" className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                المحفوظات
-              </Link>
+              <Link to="/" className="block py-2 text-sm font-medium" onClick={() => setIsMenuOpen(false)}>الرئيسية</Link>
+              <Link to="/saved" className="block py-2 text-sm font-medium text-primary" onClick={() => setIsMenuOpen(false)}>المحفوظات</Link>
               {categories?.map((category) => (
-                <Link key={category.id} to={`/category/${category.slug}`} className="block py-2 text-sm font-medium text-foreground/80 hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link key={category.id} to={`/category/${category.slug}`} className="block py-2 text-sm font-medium" onClick={() => setIsMenuOpen(false)}>
                   {category.name_ar}
                 </Link>
               ))}
