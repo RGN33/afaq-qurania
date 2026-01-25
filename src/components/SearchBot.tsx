@@ -51,12 +51,13 @@ export function SearchBot() {
     } finally { setIsSubmitting(false); }
   };
 
-  // ربط محمل تيك توك مع كود البايثون
+ // ✨ النسخة المحدثة بناءً على فكرتك (Direct Video Link)
   const handleTikTokDownload = async () => {
     if (!tiktokUrl.includes('tiktok.com')) {
-      toast.error("يرجى إدخال رابط تيك توك صحيح");
+      toast.error("يا عمر، الرابط لازم يكون من تيك توك!");
       return;
     }
+
     setIsDownloading(true);
     try {
       const res = await fetch('/api/download', {
@@ -64,17 +65,30 @@ export function SearchBot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: tiktokUrl }),
       });
-      const data = await res.json();
-      if (res.ok && data.download_link) {
-        window.open(data.download_link, '_blank');
-        toast.success("تم استخراج الفيديو بنجاح");
-      } else {
-        toast.error("تيك توك حظر الطلب، حاول مرة أخرى لاحقاً");
-      }
-    } catch { toast.error("خطأ في الاتصال بمحرك التحميل"); }
-    finally { setIsDownloading(false); }
-  };
 
+      const data = await res.json();
+
+      if (res.ok && data.download_link) {
+        // ✨ هنا السحر: فتح الرابط في صفحة جديدة كفيديو خام
+        // استخدمنا 'noreferrer' عشان نخفي هوية موقعك عن تيك توك تماماً
+        const newWindow = window.open(data.download_link, '_blank', 'noopener,noreferrer');
+        
+        if (newWindow) {
+          toast.success("تم استخراج الفيديو! سيفتح الآن للمعاينة والتحميل");
+        } else {
+          toast.error("المتصفح منع فتح النافذة، يرجى السماح بالـ Pop-ups");
+        }
+      } else {
+        // رسالة أوضح في حالة الحظر من تيك توك للسيرفر
+        toast.error(data.error || "عذراً، تيك توك رفض طلب السيرفر حالياً");
+      }
+    } catch (error) {
+      toast.error("فشل الاتصال بمحرك البايثون");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+  
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 space-y-4 text-right" dir="rtl">
       
