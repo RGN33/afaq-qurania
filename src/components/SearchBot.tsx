@@ -111,7 +111,7 @@ export function SearchBot() {
             value={query} 
             onChange={(e) => { setQuery(e.target.value); setHasSearched(false); }}
             onKeyDown={handleKeyDown}
-            placeholder="عن ماذا تبحث اليوم يا عمر؟" 
+            placeholder="عن ماذا تبحث اليوم ؟" 
             className="h-12 text-sm focus-visible:ring-primary/30"
           />
           <Button onClick={handleSearch} className="h-12 px-6 shadow-lg shadow-primary/20">
