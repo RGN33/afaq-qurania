@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Search, Bot, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { Search, Bot, CheckCircle, XCircle, Sparkles, Palette, ArrowRight } from 'lucide-react'; // أضفنا Palette و ArrowRight
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom'; // أضفنا Link للتوجيه
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useResources } from '@/hooks/useResources';
@@ -61,12 +62,13 @@ export function SearchBot() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0">
+    <div className="w-full max-w-2xl mx-auto px-4 sm:px-0 space-y-4">
+      {/* صندوق مساعد البحث الرئيسي */}
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="glass-card rounded-2xl p-6 relative z-10"
+        className="glass-card rounded-2xl p-6 relative z-10 shadow-xl shadow-primary/5"
       >
         <motion.div 
           className="flex items-center gap-3 mb-4"
@@ -118,14 +120,14 @@ export function SearchBot() {
             }}
             onKeyDown={handleKeyDown}
             placeholder="ابحث عن خط، فيديو..."
-            className="flex-1 text-sm sm:text-base h-11 cursor-text touch-manipulation"
+            className="flex-1 text-sm sm:text-base h-11 cursor-text touch-manipulation focus:ring-primary/20"
           />
           <motion.div
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="flex-shrink-0"
           >
-            <Button onClick={handleSearch} className="gap-2 h-11 px-4 touch-manipulation">
+            <Button onClick={handleSearch} className="gap-2 h-11 px-4 touch-manipulation shadow-lg shadow-primary/20">
               <Search className="h-4 w-4" />
               <span className="hidden sm:inline">بحث</span>
             </Button>
@@ -198,6 +200,43 @@ export function SearchBot() {
             </motion.div>
           )}
         </AnimatePresence>
+      </motion.div>
+
+      {/* ✨ مستطيل "مستخرج الألوان الذكي" - تمت إضافته هنا بشكل انسيابي */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+      >
+        <Link 
+          to="/color-extractor" 
+          className="group block relative overflow-hidden rounded-2xl p-5 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 hover:border-primary/40 transition-all shadow-sm"
+        >
+          {/* تأثير توهج خلفي (Glow) */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors" />
+          
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4 text-right">
+              <motion.div 
+                className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20"
+                whileHover={{ rotate: 15, scale: 1.1 }}
+              >
+                <Palette className="h-6 w-6" />
+              </motion.div>
+              <div>
+                <h4 className="font-bold text-foreground text-sm sm:text-base">مستخرج الألوان الذكي</h4>
+                <p className="text-xs text-muted-foreground">حول أي صورة إلى باليتة ألوان احترافية لتصاميمك</p>
+              </div>
+            </div>
+            
+            <motion.div 
+              className="w-10 h-10 rounded-full border border-primary/20 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-300"
+              whileHover={{ x: -5 }}
+            >
+              <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+            </motion.div>
+          </div>
+        </Link>
       </motion.div>
     </div>
   );
