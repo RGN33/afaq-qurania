@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Search, Bot, Palette, ArrowRight, Video, Download, Loader2, PlusCircle, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Bot, Palette, ArrowRight, Video, Download, Loader2, PlusCircle, CheckCircle, Sparkles, link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ export function SearchBot() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMoreTools, setShowMoreTools] = useState(false);
   
-  // حالات محمل تيك توك (النسخة الاحترافية)
+  // حالات محمل تيك توك الاحترافية
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -24,6 +24,7 @@ export function SearchBot() {
 
   const { data: resources } = useResources();
 
+  // منطق البحث الذكي
   const searchResults = useMemo(() => {
     if (!query.trim() || !resources) return [];
     const q = query.toLowerCase();
@@ -32,40 +33,30 @@ export function SearchBot() {
     );
   }, [query, resources]);
 
-  // دالة إرسال طلب للأدمن
-  const handleSubmitRequest = async () => {
-    if (!query.trim() || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await supabase.from('requests').insert({ search_query: query.trim() });
-      toast.success("تم إرسال طلبك بنجاح");
-    } catch { toast.error("فشل الإرسال"); }
-    finally { setIsSubmitting(false); }
-  };
-
-  // ✨ محرك التحميل المطور (التايمر الوهمي + حل مشكلة الموبايل)
+  // ✨ محرك التحميل الذكي (يدعم الروابط المختصرة VT)
   const handleTikTokDownload = async () => {
-    if (!tiktokUrl.includes('tiktok.com')) {
-      toast.error("يرجى إدخال رابط تيك توك صحيح يا عمر");
+    let cleanUrl = tiktokUrl.trim();
+    
+    if (!cleanUrl.includes('tiktok.com')) {
+      toast.error("الرابط غير صحيح، تأكد من نسخه من تيك توك");
       return;
     }
 
     setIsDownloading(true);
     setVideoResult(null);
-    setProgress(0);
-    setStatusText("جاري الاتصال بالسيرفر...");
+    setProgress(5);
 
-    // ⏳ شريط تقدم وهمي احترافي
+    // ⏳ تايمر وهمي احترافي متفاعل مع نوع الرابط
+    const isShortLink = cleanUrl.includes('vt.tiktok.com');
+    setStatusText(isShortLink ? "جاري فك تشفير الرابط المختصر..." : "جاري الاتصال بالسيرفر...");
+
     const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + (prev < 40 ? 10 : 5);
-      });
-    }, 400);
+      setProgress((prev) => (prev >= 90 ? prev : prev + 5));
+    }, 300);
 
     try {
-      setStatusText("جاري فك تشفير الرابط...");
-      const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`);
+      // إرسال الرابط للـ API (الأداة تتعامل مع الـ Redirects بشكل أفضل عند إرسالها كـ Param)
+      const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`);
       const data = await res.json();
 
       clearInterval(interval);
@@ -76,16 +67,22 @@ export function SearchBot() {
         setTimeout(() => {
           setVideoResult(data.data.play);
           setIsDownloading(false);
-          toast.success("الفيديو جاهز للتحميل");
         }, 500);
+        toast.success("تم تجهيز الفيديو بدون علامة مائية");
       } else {
-        throw new Error("API Limit or Private Video");
+        throw new Error("Failed to Fetch");
       }
     } catch (error) {
       clearInterval(interval);
       setIsDownloading(false);
       setProgress(0);
-      toast.error("فشل الاستخراج. تأكد أن الحساب ليس خاصاً (Private) وجرب مجدداً.");
+      // رسالة خطأ ذكية
+      toast.error(
+        <div className="text-right">
+          <p className="font-bold">فشل الاستخراج</p>
+          <p className="text-[10px]">الروابط المختصرة (vt) أحياناً يحظرها تيك توك، جرب الرابط الطويل من المتصفح.</p>
+        </div>
+      );
     }
   };
 
@@ -103,7 +100,7 @@ export function SearchBot() {
             value={query} 
             onChange={(e) => {setQuery(e.target.value); setHasSearched(false);}} 
             placeholder="ابحث عن ملحقاتك..." 
-            className="h-12 sm:h-14 text-sm sm:text-base bg-background/50 border-primary/20" 
+            className="h-12 sm:h-14 bg-background/50 border-primary/20" 
           />
           <Button onClick={() => setHasSearched(true)} className="h-12 sm:h-14 px-6 sm:px-8">
             <Search className="h-5 w-5" />
@@ -117,7 +114,7 @@ export function SearchBot() {
                   {searchResults.slice(0, 4).map((res) => <ResourceCard key={res.id} resource={res} compact />)}
                 </div>
               ) : (
-                <Button onClick={handleSubmitRequest} disabled={isSubmitting} className="w-full h-12 rounded-xl">أرسل طلب للأدمن</Button>
+                <Button className="w-full h-12 rounded-xl">أرسل طلب للأدمن</Button>
               )}
             </motion.div>
           )}
@@ -147,53 +144,45 @@ export function SearchBot() {
           variant="outline" 
           size="sm" 
           onClick={() => setShowMoreTools(!showMoreTools)} 
-          className="rounded-full bg-background px-6 text-[10px] font-bold z-10 border-border hover:text-primary transition-colors"
+          className="rounded-full bg-background px-6 text-[10px] font-bold z-10 border-border"
         >
           {showMoreTools ? "إخفاء الأدوات" : "المزيد من الأدوات"}
         </Button>
       </div>
 
-      {/* 3. ✨ محمل تيك توك (النسخة الاحترافية المحدثة) */}
+      {/* 3. محمل تيك توك المطور (يدعم VT و PC) */}
       <AnimatePresence>
         {showMoreTools && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} 
             animate={{ opacity: 1, scale: 1 }} 
             exit={{ opacity: 0, scale: 0.95 }} 
-            className="p-6 glass-card rounded-3xl border border-pink-500/20 bg-gradient-to-br from-pink-500/5 to-transparent shadow-xl relative overflow-hidden"
+            className="p-6 glass-card rounded-3xl border border-pink-500/20 bg-gradient-to-br from-pink-500/5 to-transparent shadow-xl relative"
           >
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 text-right">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center text-white shadow-lg"><Video /></div>
                   <div>
                     <h4 className="font-bold text-sm sm:text-base">محمل تيك توك الذكي</h4>
-                    <p className="text-[10px] text-muted-foreground">بدون علامة مائية وبجودة عالية</p>
+                    {isDownloading && <p className="text-[10px] text-pink-500 animate-pulse mt-1">{statusText}</p>}
                   </div>
                 </div>
                 {isDownloading && <Loader2 className="h-5 w-5 animate-spin text-pink-500" />}
               </div>
 
-              {/* شريط التقدم الوهمي المحسن */}
-              <AnimatePresence>
-                {isDownloading && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold text-pink-500">
-                      <span>{statusText}</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="w-full bg-pink-500/10 h-2 rounded-full overflow-hidden">
-                      <motion.div className="h-full bg-pink-500" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* شريط التقدم الوهمي */}
+              {isDownloading && (
+                <div className="w-full bg-pink-500/10 h-1.5 rounded-full overflow-hidden">
+                  <motion.div className="h-full bg-pink-500" animate={{ width: `${progress}%` }} />
+                </div>
+              )}
 
               {!videoResult ? (
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Input 
-                    placeholder="ضع رابط الفيديو هنا..." 
-                    className="h-14 text-sm sm:text-base bg-background/50 border-pink-500/10 focus-visible:ring-pink-500/20" 
+                    placeholder="ضع رابط (vt.tiktok) أو الرابط العادي..." 
+                    className="h-14 text-sm sm:text-base bg-background/50 border-pink-500/10" 
                     value={tiktokUrl} 
                     onChange={(e) => setTiktokUrl(e.target.value)}
                     disabled={isDownloading}
@@ -201,31 +190,29 @@ export function SearchBot() {
                   <Button 
                     onClick={handleTikTokDownload} 
                     disabled={isDownloading || !tiktokUrl} 
-                    className="bg-[#FE2C55] h-14 w-full sm:w-24 shadow-lg shadow-pink-500/20 active:scale-95 transition-all font-bold"
+                    className="bg-[#FE2C55] h-14 w-full sm:w-28 shadow-lg shadow-pink-500/20 active:scale-95 transition-all font-bold"
                   >
                     {isDownloading ? <Sparkles className="animate-pulse h-5 w-5" /> : "استخراج"}
                   </Button>
                 </div>
               ) : (
-                /* ✨ بطاقة النجاح الأنيقة */
                 <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span className="text-xs font-bold text-green-700">تم استخراج الفيديو بنجاح!</span>
+                    <span className="text-xs font-bold text-green-700">تم فك تشفير الرابط بنجاح!</span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg"
-                      onClick={() => { window.open(videoResult, '_blank'); setVideoResult(null); setTiktokUrl(''); }}
-                    >
-                      تحميل الآن
-                    </Button>
-                    <Button variant="outline" className="h-12 rounded-xl" onClick={() => { setVideoResult(null); setTiktokUrl(''); }}>
-                      إلغاء
-                    </Button>
-                  </div>
+                  <Button 
+                    className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg"
+                    onClick={() => { window.open(videoResult, '_blank'); setVideoResult(null); setTiktokUrl(''); }}
+                  >
+                    تحميل الفيديو الآن
+                  </Button>
                 </motion.div>
               )}
+              
+              <p className="text-[9px] text-muted-foreground text-center bg-pink-500/5 py-1 rounded-lg">
+                * الروابط المختصرة (vt) قد تستغرق وقتاً أطول قليلاً للمعالجة
+              </p>
             </div>
           </motion.div>
         )}
