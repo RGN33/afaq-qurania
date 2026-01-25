@@ -15,7 +15,9 @@ export function ResourceCard({ resource, compact, index = 0 }: ResourceCardProps
   const { isSaved, toggleSave } = useSavedResources();
   const saved = isSaved(resource.id);
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (navigator.share) {
       try {
         await navigator.share({
@@ -28,7 +30,14 @@ export function ResourceCard({ resource, compact, index = 0 }: ResourceCardProps
       }
     } else {
       navigator.clipboard.writeText(resource.mega_link);
+      // يمكنك إضافة toast هنا لإعلام المستخدم بنسخ الرابط
     }
+  };
+
+  const handleToggleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSave(resource); // نرسل المورد بالكامل وليس الـ ID فقط
   };
 
   return (
@@ -46,17 +55,13 @@ export function ResourceCard({ resource, compact, index = 0 }: ResourceCardProps
         transition: { duration: 0.2 }
       }}
       className={cn(
-        'group bg-card rounded-xl border border-border overflow-hidden hover:shadow-xl transition-shadow',
+        'group bg-card rounded-xl border border-border overflow-hidden hover:shadow-xl transition-all duration-300',
         compact && 'flex items-center gap-3 p-3'
       )}
     >
       {compact ? (
         <>
-          <motion.div 
-            className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-secondary"
-            whileHover={{ scale: 1.1 }}
-            transition={{ duration: 0.2 }}
-          >
+          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-secondary">
             {resource.thumbnail_url ? (
               <img
                 src={resource.thumbnail_url}
@@ -68,18 +73,22 @@ export function ResourceCard({ resource, compact, index = 0 }: ResourceCardProps
                 <Download className="h-6 w-6 text-muted-foreground" />
               </div>
             )}
-          </motion.div>
+          </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-foreground truncate">{resource.title_ar}</h4>
+            <h4 className="font-medium text-foreground truncate text-sm">{resource.title_ar}</h4>
             <p className="text-xs text-muted-foreground truncate">{resource.title}</p>
           </div>
-          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-            <Button size="icon" variant="ghost" asChild>
+          <div className="flex items-center gap-1">
+            {/* زر الحفظ في الوضع المصغر */}
+            <Button size="icon" variant="ghost" onClick={handleToggleSave} className="h-8 w-8">
+              <Bookmark className={cn('h-4 w-4', saved && 'fill-primary text-primary')} />
+            </Button>
+            <Button size="icon" variant="ghost" asChild className="h-8 w-8">
               <a href={resource.mega_link} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
-          </motion.div>
+          </div>
         </>
       ) : (
         <>
@@ -94,88 +103,46 @@ export function ResourceCard({ resource, compact, index = 0 }: ResourceCardProps
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <motion.div
-                  animate={{ 
-                    y: [0, -5, 0],
-                  }}
-                  transition={{ 
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                >
-                  <Download className="h-12 w-12 text-muted-foreground/50" />
-                </motion.div>
+                <Download className="h-12 w-12 text-muted-foreground/50" />
               </div>
             )}
-            <motion.div 
-              className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"
-              initial={{ opacity: 0 }}
-              whileHover={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            />
+            <div className="absolute top-2 right-2 flex gap-2">
+               <Button 
+                variant="secondary" 
+                size="icon" 
+                className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                onClick={handleShare}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="p-4">
-            <motion.h3 
-              className="font-semibold text-foreground mb-1 line-clamp-1"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 + index * 0.1 }}
-            >
-              {resource.title_ar}
-            </motion.h3>
-            <motion.p 
-              className="text-sm text-muted-foreground mb-4 line-clamp-1"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
-            >
-              {resource.title}
-            </motion.p>
-            <motion.div 
-              className="flex items-center gap-2"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 + index * 0.1 }}
-            >
-              <motion.div 
-                className="flex-1"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+            <h3 className="font-semibold text-foreground mb-1 line-clamp-1">{resource.title_ar}</h3>
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-1">{resource.title}</p>
+            
+            <div className="flex items-center gap-2">
+              <Button asChild className="flex-1 gap-2 shadow-sm">
+                <a href={resource.mega_link} target="_blank" rel="noopener noreferrer">
+                  <Download className="h-4 w-4" />
+                  تحميل
+                </a>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleToggleSave}
+                className={cn('transition-all duration-300', saved && 'text-primary border-primary bg-primary/5')}
               >
-                <Button asChild className="w-full gap-2">
-                  <a href={resource.mega_link} target="_blank" rel="noopener noreferrer">
-                    <motion.div
-                      animate={{ y: [0, -2, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                    >
-                      <Download className="h-4 w-4" />
-                    </motion.div>
-                    تحميل
-                  </a>
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }}>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => toggleSave(resource.id)}
-                  className={cn(saved && 'text-accent border-accent bg-accent/10')}
+                <motion.div
+                  animate={saved ? { scale: [1, 1.3, 1] } : {}}
+                  transition={{ duration: 0.3 }}
                 >
-                  <motion.div
-                    animate={saved ? { scale: [1, 1.3, 1] } : {}}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Bookmark className={cn('h-4 w-4', saved && 'fill-current')} />
-                  </motion.div>
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.15, rotate: 15 }} whileTap={{ scale: 0.9 }}>
-                <Button variant="outline" size="icon" onClick={handleShare}>
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </motion.div>
-            </motion.div>
+                  <Bookmark className={cn('h-4 w-4', saved && 'fill-primary')} />
+                </motion.div>
+              </Button>
+            </div>
           </div>
         </>
       )}
