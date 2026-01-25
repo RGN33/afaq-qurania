@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Category from "./pages/Category";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
+import Saved from "./pages/Saved"; // ✨ السطر اللي أضفناه لاستيراد صفحة المحفوظات
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/category/:slug" element={<Category />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/saved" element={<Saved />} /> {/* ✨ السطر اللي بيعرف الطريق لصفحة المحفوظات */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
