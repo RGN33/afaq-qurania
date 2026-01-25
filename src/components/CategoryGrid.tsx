@@ -68,7 +68,8 @@ export function CategoryGrid() {
       whileInView="visible"
       viewport={{ once: true, margin: "-50px" }}
     >
-      {categories?.map((category) => {
+      {/* تم إضافة .slice(0, 6) هنا لعرض أول 6 أقسام فقط */}
+      {categories?.slice(0, 6).map((category) => {
         const Icon = getIcon(category.icon);
         return (
           <motion.div
