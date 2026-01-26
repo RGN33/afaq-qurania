@@ -1,39 +1,47 @@
 import json
 from http.server import BaseHTTPRequestHandler
-import urllib.request
+import requests
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        input_url = json.loads(post_data).get('url')
-
         try:
-            # 1. المرحلة الأولى: فك تشفير الرابط المختصر خلف الكواليس
-            # نستخدم User-Agent محترف لمنع الحظر أثناء التتبع
-            req = urllib.request.Request(
-                input_url, 
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-            )
-            
-            with urllib.request.urlopen(req) as resp:
-                # هذا هو الرابط الطويل الحقيقي بعد التوجيه
-                final_long_url = resp.geturl()
+            # 1. قراءة الرابط المرسل من ريأكت
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data)
+            tiktok_url = data.get('url')
 
-            # 2. المرحلة الثانية: إرسال الرابط الطويل لـ TikWM
-            api_url = f"https://www.tikwm.com/api/?url={final_long_url}"
-            api_req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+            if not tiktok_url:
+                raise ValueError("No URL provided")
+
+            # 2. تتبع الرابط وتنظيفه (خلف الكواليس)
+            # نستخدم allow_redirects=True للوصول للرابط الأصلي
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            response = requests.head(tiktok_url, headers=headers, allow_redirects=True, timeout=10)
             
-            with urllib.request.urlopen(api_req) as api_resp:
-                data = json.loads(api_resp.read().decode())
-                
-            # إرجاع النتيجة النهائية
+            # تنظيف الرابط من الزوائد (حذف أي شيء بعد علامة الاستفهام)
+            clean_url = response.url.split('?')[0]
+
+            # 3. إرسال الرابط النظيف للأداة الجاهزة
+            api_url = f"https://www.tikwm.com/api/?url={clean_url}"
+            api_response = requests.get(api_url, headers=headers, timeout=10)
+            result_data = api_response.json()
+
+            # 4. إرسال النتيجة النهائية لريأكت
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*') # لضمان عملها على الموبايل
             self.end_headers()
-            self.wfile.write(json.dumps({'download_link': data['data']['play']}).encode())
             
+            if result_data.get('code') == 0:
+                final_response = {'download_link': result_data['data']['play']}
+            else:
+                final_response = {'error': 'فشل الاستخراج من المصدر'}
+
+            self.wfile.write(json.dumps(final_response).encode())
+
         except Exception as e:
             self.send_response(500)
+            self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({'error': "فشل في تتبع الرابط، تأكد من صحته"}).encode())
+            self.wfile.write(json.dumps({'error': str(e)}).encode())
