@@ -16,21 +16,17 @@ import { useResources } from '@/hooks/useResources';
 import { ResourceCard } from './ResourceCard';
 
 export function SearchBot() {
-  // --- حالات البحث وطلب الملحقات ---
   const [query, setQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: resources } = useResources();
 
-  // --- حالات محرك التيك توك ---
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState('');
   const [videoResult, setVideoResult] = useState<any>(null);
   const [showTools, setShowTools] = useState(false);
 
-  // 1. منطق البحث الذكي
   const searchResults = useMemo(() => {
     if (!query.trim() || !resources) return [];
     const q = query.toLowerCase().trim();
@@ -39,26 +35,19 @@ export function SearchBot() {
     );
   }, [query, resources]);
 
-  // 2. إرسال طلب للأدمن عند عدم وجود نتائج
   const handleRequestAdmin = async () => {
     if (!query.trim()) return;
     setIsSubmitting(true);
     try {
       await supabase.from('requests').insert({ search_query: query.trim() });
       toast.success("تم إرسال طلبك، سيتم الإضافة خلال 24 ساعة");
-      setQuery('');
-      setHasSearched(false);
-    } catch {
-      toast.error("حدث خطأ في الإرسال");
-    } finally {
-      setIsSubmitting(false);
-    }
+      setQuery(''); setHasSearched(false);
+    } catch { toast.error("فشل الإرسال"); } finally { setIsSubmitting(false); }
   };
 
-  // 3. محرك تحميل التيك توك (يربط بالباك إند)
   const handleTikTokProcess = async () => {
     if (!tiktokUrl.includes('tiktok.com')) return toast.error("الرابط غير صحيح");
-    setIsDownloading(true); setVideoResult(null); setProgress(20); setStatusText("جاري استخراج الفيديو...");
+    setIsDownloading(true); setVideoResult(null); setProgress(20);
     try {
       const response = await fetch('/api/download', {
         method: 'POST',
@@ -67,154 +56,139 @@ export function SearchBot() {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        setProgress(100); setStatusText("تم بنجاح!");
-        setTimeout(() => { setVideoResult(data); setIsDownloading(false); }, 500);
+        setProgress(100);
+        setTimeout(() => { setVideoResult(data); setIsDownloading(false); }, 400);
       } else { throw new Error(data.message); }
     } catch (err: any) {
-      toast.error(err.message || "فشل التحميل"); setIsDownloading(false); setProgress(0);
+      toast.error(err.message || "حدث خطأ"); setIsDownloading(false); setProgress(0);
     }
   };
 
-  // كلاس موحد لجميع الكروت لضمان تناسق الحجم والشكل
-  const cardBaseStyle = "bg-white/5 dark:bg-[#0a1a14]/60 backdrop-blur-2xl rounded-[2.5rem] p-6 sm:p-10 border border-white/10 dark:border-emerald-900/30 shadow-2xl transition-all w-full";
+  // إعدادات الأنيميشن الهادئ لعدم القفز فوق العناصر
+  const smoothTransition = { type: "spring", stiffness: 260, damping: 30 };
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-8 space-y-6 text-right" dir="rtl">
+    <div className="w-full max-w-xl mx-auto px-4 py-6 space-y-4 text-right" dir="rtl">
       
-      {/* قسم البحث الذكي */}
-      <motion.div layout className={cardBaseStyle}>
-        <div className="flex items-center gap-4 mb-8 justify-start">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner">
-            <Bot className="h-7 w-7" />
+      {/* 1. كارت البحث - حجم مدمج وتصميم هادئ */}
+      <motion.div 
+        layout
+        transition={smoothTransition}
+        className="bg-white/5 dark:bg-[#0a1a14]/60 backdrop-blur-xl rounded-[1.5rem] p-5 border border-white/10 dark:border-emerald-900/20 shadow-xl"
+      >
+        <div className="flex items-center gap-3 mb-5 justify-start">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner">
+            <Bot className="h-5 w-5" />
           </div>
-          <div>
-            <h3 className="font-bold text-xl text-slate-800 dark:text-emerald-50">البحث الذكي</h3>
-            <p className="text-[11px] text-slate-400 dark:text-emerald-500/60 font-bold uppercase tracking-widest">مكتبة آفاق قرآنية</p>
-          </div>
+          <h3 className="font-bold text-sm sm:text-base dark:text-emerald-50">البحث الذكي</h3>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <Input 
             value={query} 
             onChange={(e) => {setQuery(e.target.value); setHasSearched(false);}}
-            placeholder="ابحث عن ملحقاتك هنا..." 
-            className="h-16 rounded-2xl bg-slate-50 dark:bg-black/20 border-none ring-1 ring-slate-100 dark:ring-emerald-900/50 px-6 text-base dark:text-emerald-50 outline-none transition-all" 
+            placeholder="عن ماذا تبحث؟" 
+            className="h-12 rounded-xl bg-black/20 border-none ring-1 ring-white/10 px-5 text-sm dark:text-emerald-50 focus:ring-emerald-500/40" 
           />
-          <button onClick={() => setHasSearched(true)} className="w-16 h-16 rounded-2xl bg-emerald-900 dark:bg-emerald-700 text-white flex items-center justify-center hover:bg-black transition-all shadow-lg active:scale-95">
-            <Search className="h-6 w-6" />
-          </button>
+          <Button onClick={() => setHasSearched(true)} className="h-12 w-12 rounded-xl bg-emerald-700 text-white flex items-center justify-center hover:bg-emerald-600 transition-all active:scale-95">
+            <Search className="h-5 w-5" />
+          </Button>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {hasSearched && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-8 overflow-hidden">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="mt-4"
+            >
               {searchResults.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {searchResults.map((res: any) => <ResourceCard key={res.id} resource={res} compact />)}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {searchResults.slice(0, 4).map((res: any) => <ResourceCard key={res.id} resource={res} compact />)}
                 </div>
               ) : (
-                <div className="p-8 bg-slate-50/50 dark:bg-emerald-900/10 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-emerald-900/30 text-center space-y-5">
-                   <p className="text-sm text-slate-500 dark:text-emerald-400 font-bold">هذا الملحق غير متوفر حالياً</p>
-                   <Button onClick={handleRequestAdmin} disabled={isSubmitting} className="w-full h-14 bg-emerald-900 dark:bg-emerald-700 rounded-2xl font-bold flex items-center justify-center gap-2">
-                    {isSubmitting ? <Loader2 className="animate-spin h-5 w-5" /> : <><Send className="h-5 w-5" /> اطلب الآن (سيتم الإضافة خلال 24 ساعة)</>}
-                   </Button>
-                </div>
+                <Button 
+                  onClick={handleRequestAdmin} 
+                  disabled={isSubmitting} 
+                  variant="outline" 
+                  className="w-full h-11 border-dashed border-emerald-900/30 text-emerald-500 rounded-xl text-xs hover:bg-emerald-900/10"
+                >
+                  {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : "غير متوفر، اطلب الآن (إضافة خلال 24 ساعة)"}
+                </Button>
               )}
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
 
-      {/* قسم مستخرج الألوان */}
-      <Link to="/color-extractor" className="group block">
-        <div className={`${cardBaseStyle} p-6 sm:p-7 flex items-center justify-between hover:bg-white/10 dark:hover:bg-emerald-900/20`}>
-          <div className="flex items-center gap-5">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:rotate-12 transition-transform shadow-inner">
-              <Palette className="h-6 w-6" />
+      {/* 2. مستخرج الألوان - حجم مدمج ونفس التصميم */}
+      <Link to="/color-extractor" className="block group">
+        <div className="bg-white/5 dark:bg-[#0a1a14]/60 backdrop-blur-xl rounded-[1.2rem] p-4 border border-white/10 dark:border-emerald-900/20 flex items-center justify-between hover:bg-white/10 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:rotate-6 transition-transform">
+              <Palette className="h-5 w-5" />
             </div>
-            <div>
-              <h3 className="font-bold text-slate-800 dark:text-emerald-50 text-base">مستخرج الألوان الإسلامي</h3>
-              <p className="text-[10px] text-slate-400 dark:text-emerald-500/60 font-medium tracking-tight">نسق ألوان تصميمك باحترافية من صورك</p>
-            </div>
+            <h3 className="font-bold dark:text-emerald-50 text-sm">مستخرج الألوان الإسلامي</h3>
           </div>
-          <ArrowRight className="h-6 w-6 text-slate-300 dark:text-emerald-900 rotate-180 group-hover:text-emerald-500 transition-colors" />
+          <ArrowRight className="h-4 w-4 text-emerald-900 rotate-180 group-hover:text-emerald-500 transition-colors" />
         </div>
       </Link>
 
-      {/* زر عرض الأدوات */}
-      <div className="flex justify-center py-2">
-        <button onClick={() => setShowTools(!showTools)} className="text-[10px] font-black text-slate-400 dark:text-emerald-500/40 uppercase tracking-[0.3em] hover:text-emerald-500 transition-colors underline underline-offset-8">
-          {showTools ? "إخفاء الأدوات الإضافية" : "عرض المزيد من الأدوات"}
+      <div className="flex justify-center">
+        <button onClick={() => setShowTools(!showTools)} className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-[0.2em] hover:text-emerald-500 transition-colors py-2">
+          {showTools ? "إخفاء الأدوات" : "عرض المزيد من الأدوات"}
         </button>
       </div>
 
-      {/* قسم محمل التيك توك - تم توحيد الحجم */}
+      {/* 3. محمل تيك توك - حجم متناسق مع البقية */}
       <AnimatePresence>
         {showTools && (
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, y: 20 }} className={cardBaseStyle}>
-            <div className="flex items-center gap-5 mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-900 dark:bg-emerald-700 text-white flex items-center justify-center shadow-lg">
-                <Video className="h-7 w-7" />
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 10 }} 
+            className="bg-white/5 dark:bg-[#0a1a14]/60 backdrop-blur-xl rounded-[1.5rem] p-5 border border-white/10 dark:border-emerald-900/20 space-y-4"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                <Video className="h-5 w-5" />
               </div>
-              <div>
-                <h4 className="font-bold text-slate-800 dark:text-emerald-50 text-lg">محمل تيك توك الذكي</h4>
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-500 font-bold tracking-tight">تحميل بدون علامة مائية • يدعم الوضع الليلي</p>
-              </div>
+              <h4 className="font-bold dark:text-emerald-50 text-sm">محمل تيك توك الذكي</h4>
             </div>
 
             {isDownloading && (
-              <div className="mb-6 space-y-3">
-                <div className="flex justify-between text-[10px] font-black text-emerald-800 dark:text-emerald-500 px-1">
-                  <span>{statusText}</span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-black/20 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-emerald-900/30">
-                  <motion.div className="h-full bg-emerald-800 dark:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,129,0.3)]" animate={{ width: `${progress}%` }} />
-                </div>
+              <div className="w-full bg-black/30 h-1 rounded-full overflow-hidden">
+                <motion.div className="h-full bg-emerald-600" animate={{ width: `${progress}%` }} />
               </div>
             )}
 
             {!videoResult ? (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input 
+              <div className="flex gap-2">
+                <input 
                   value={tiktokUrl} 
                   onChange={(e) => setTiktokUrl(e.target.value)} 
-                  placeholder="ضع رابط تيك توك هنا..." 
-                  className="flex-1 h-14 rounded-2xl bg-slate-50 dark:bg-black/20 border-none ring-1 ring-slate-100 dark:ring-emerald-900/50 px-5 text-left dir-ltr text-sm dark:text-emerald-50 outline-none" 
+                  placeholder="ضع الرابط هنا..." 
+                  className="flex-1 h-11 rounded-xl bg-black/20 border-none ring-1 ring-white/5 px-4 text-left dir-ltr text-xs dark:text-emerald-50 outline-none focus:ring-emerald-500/30" 
                 />
-                <button 
+                <Button 
                   onClick={handleTikTokProcess} 
                   disabled={isDownloading || !tiktokUrl} 
-                  className="w-full sm:w-auto px-10 h-14 rounded-2xl bg-emerald-900 dark:bg-emerald-700 text-white font-bold text-sm shadow-xl active:scale-95 disabled:opacity-50 transition-all"
+                  className="px-5 h-11 bg-emerald-700 text-white rounded-xl font-bold text-xs"
                 >
-                  {isDownloading ? <Loader2 className="animate-spin h-5 w-5 mx-auto" /> : "استخراج الفيديو"}
-                </button>
+                  {isDownloading ? <Loader2 className="animate-spin h-4 w-4" /> : "تحميل"}
+                </Button>
               </div>
             ) : (
-              <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="p-8 bg-emerald-50/50 dark:bg-emerald-900/10 rounded-[2.5rem] border border-emerald-100 dark:border-emerald-800/50 space-y-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white dark:bg-emerald-900/20 rounded-full flex items-center justify-center text-emerald-700 dark:text-emerald-400 shadow-sm border border-emerald-100 dark:border-emerald-800/30 shrink-0">
-                    <CheckCircle className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h5 className="text-sm font-black text-emerald-900 dark:text-emerald-400 underline underline-offset-4 decoration-2">تم تجهيز الفيديو بنجاح!</h5>
-                    <p className="text-[10px] text-slate-500 dark:text-emerald-500/60 truncate mt-2 font-bold italic">{videoResult?.videoInfo?.title}</p>
-                  </div>
+              <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="p-4 bg-emerald-600/10 rounded-xl border border-emerald-500/20 flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  <p className="text-[10px] text-emerald-100 truncate flex-1 font-bold">تم التجهيز بنجاح!</p>
                 </div>
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button 
-                    onClick={() => window.open(videoResult.downloadLink, '_blank')} 
-                    className="flex-1 h-14 bg-emerald-800 dark:bg-emerald-700 text-white rounded-2xl font-bold text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-black transition-all"
-                  >
-                    <Download className="h-5 w-5" /> تحميل الآن
-                  </button>
-                  <button 
-                    onClick={() => { setVideoResult(null); setTiktokUrl(''); setProgress(0); }} 
-                    className="h-14 px-8 bg-white dark:bg-black/20 text-emerald-900 dark:text-emerald-400 rounded-2xl font-bold text-xs border border-emerald-100 dark:border-emerald-900/30 flex items-center justify-center gap-2 hover:bg-emerald-50 transition-all"
-                  >
-                    <RefreshCcw className="h-4 w-4" /> فيديو آخر
-                  </button>
+                <div className="flex gap-2">
+                  <Button onClick={() => window.open(videoResult.downloadLink, '_blank')} className="flex-1 h-10 bg-emerald-600 text-white rounded-lg text-xs font-bold">تحميل الآن</Button>
+                  <Button onClick={() => setVideoResult(null)} variant="ghost" className="h-10 px-3 text-emerald-400 hover:bg-emerald-500/10"><RefreshCcw className="h-4 w-4" /></Button>
                 </div>
               </motion.div>
             )}
