@@ -11,7 +11,8 @@ import Category from "./pages/Category";
 import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import Saved from "./pages/Saved"; 
-import ColorExtractor from "./pages/ColorExtractor"; // ✨ السطر المضاف لتعريف أداة الألوان
+import ColorExtractor from "./pages/ColorExtractor";
+import FontPreview from "./pages/FontPreview"; // ✨ إضافة استيراد صفحة معاينة الخطوط
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,10 +28,11 @@ const App = () => (
             {/* الصفحة الرئيسية */}
             <Route path="/" element={<Index />} />
             
-            {/* صفحات الأقسام والمحتوى */}
+            {/* صفحات الأقسام والمحتوى والأدوات */}
             <Route path="/category/:slug" element={<Category />} />
             <Route path="/saved" element={<Saved />} />
-            <Route path="/color-extractor" element={<ColorExtractor />} /> {/* ✨ تعريف رابط أداة الألوان */}
+            <Route path="/color-extractor" element={<ColorExtractor />} />
+            <Route path="/font-preview" element={<FontPreview />} /> {/* ✨ تعريف رابط ميزة معاينة الخطوط */}
             
             {/* صفحات الإدارة */}
             <Route path="/admin-login" element={<AdminLogin />} />
