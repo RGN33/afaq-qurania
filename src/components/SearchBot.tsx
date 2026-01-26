@@ -1,7 +1,10 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Search, Bot, Palette, ArrowRight, Video, Loader2, CheckCircle, Sparkles, ExternalLink, RefreshCcw, Type, Send } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { 
+  Search, Bot, Palette, ArrowRight, Video, 
+  Loader2, CheckCircle, Download, RefreshCcw, Type, Send 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -12,11 +15,13 @@ import { ResourceCard } from './ResourceCard';
 import { toast } from 'sonner';
 
 export function SearchBot() {
+  // --- حالات البحث والطلب ---
   const [query, setQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMoreTools, setShowMoreTools] = useState(false);
   
+  // --- حالات محرك التيك توك ---
   const [tiktokUrl, setTiktokUrl] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -25,33 +30,33 @@ export function SearchBot() {
   const [videoTitle, setVideoTitle] = useState<string>('');
 
   const { data: resources } = useResources();
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isProcessingRef = useRef(false);
 
-  // منطق البحث الذكي
+  // 1. منطق البحث الذكي
   const searchResults = useMemo(() => {
     if (!query.trim() || !resources) return [];
     const q = query.toLowerCase();
-    return resources.filter((res) => 
+    return resources.filter((res: any) => 
       (res.title?.toLowerCase().includes(q)) || (res.title_ar?.includes(q))
     );
   }, [query, resources]);
 
-  // دالة إرسال طلب للأدمن
-  const handleSubmitRequest = useCallback(async () => {
+  // 2. إرسال طلب للأدمن
+  const handleSubmitRequest = async () => {
     if (!query.trim() || isSubmitting) return;
     setIsSubmitting(true);
     try {
       await supabase.from('requests').insert({ search_query: query.trim() });
       toast.success("تم إرسال طلبك بنجاح، سيتم الإضافة خلال 24 ساعة");
+      setQuery('');
+      setHasSearched(false);
     } catch { 
       toast.error("فشل الإرسال"); 
     } finally { 
       setIsSubmitting(false); 
     }
-  }, [query, isSubmitting]);
+  };
 
-  // محرك التيك توك الرئيسي (نفس آلية عملك السابقة)
+  // 3. آلية عمل التيك توك
   const handleTikTokDownload = async () => {
     if (!tiktokUrl.trim() || isDownloading) return;
     if (!tiktokUrl.includes('tiktok.com')) return toast.error("الرابط غير صحيح");
@@ -71,13 +76,13 @@ export function SearchBot() {
 
       if (response.ok && data.success) {
         setProgress(100);
-        setStatusText("تم الاستخراج!");
+        setStatusText("اكتمل الاستخراج!");
         setTimeout(() => {
           setVideoResult(data.downloadLink);
           setVideoTitle(data.videoInfo.title);
           setIsDownloading(false);
         }, 500);
-      } else { throw new Error(data.message); }
+      } else { throw new Error(data.message || "فشل الاستخراج"); }
     } catch (error: any) {
       toast.error(error.message || "حدث خطأ");
       setIsDownloading(false);
@@ -92,20 +97,22 @@ export function SearchBot() {
     setStatusText('');
   };
 
+  // إعدادات التصميم والأنيميشن
   const smoothTransition = { type: "spring", stiffness: 220, damping: 28 };
   const cardStyle = "bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-5 sm:p-7 border border-emerald-50 dark:border-emerald-900/10 shadow-2xl shadow-emerald-900/5 w-full";
 
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-8 space-y-4 text-right" dir="rtl">
       
-      {/* 1. مساعد البحث الرئيسي */}
+      {/* 🔍 كارت البحث الذكي */}
       <motion.div layout transition={smoothTransition} className={cardStyle}>
         <div className="flex items-center gap-3 mb-6 justify-start">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-inner">
             <Bot className="h-6 w-6" />
           </div>
           <h3 className="font-bold text-sm sm:text-base dark:text-emerald-50">مساعد البحث الذكي</h3>
         </div>
+
         <div className="flex gap-2">
           <Input 
             value={query} 
@@ -113,10 +120,11 @@ export function SearchBot() {
             placeholder="ابحث عن ملحقاتك..." 
             className="h-12 bg-slate-100/50 dark:bg-black/20 border-none ring-1 ring-emerald-500/10 px-4 text-sm" 
           />
-          <button onClick={() => setHasSearched(true)} className="h-12 w-12 rounded-xl bg-emerald-800 text-white flex items-center justify-center shadow-lg active:scale-95">
+          <button onClick={() => setHasSearched(true)} className="h-12 w-12 rounded-xl bg-emerald-800 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all">
             <Search className="h-5 w-5" />
           </button>
         </div>
+
         <AnimatePresence mode="wait">
           {hasSearched && (
             <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="mt-4">
@@ -128,7 +136,7 @@ export function SearchBot() {
                 <div className="space-y-3 pt-2">
                   <p className="text-[10px] text-center text-slate-400">الملحق غير متوفر حالياً</p>
                   <Button onClick={handleSubmitRequest} disabled={isSubmitting} className="w-full h-11 bg-emerald-900/10 text-emerald-600 border border-emerald-500/20 hover:bg-emerald-500/10 rounded-xl text-xs">
-                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : "اطلب من الأدمن (الإضافة خلال 24 ساعة)"}
+                    {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : <><Send className="h-4 w-4 ml-1" /> اطلب من الأدمن (إضافة خلال 24 ساعة)</>}
                   </Button>
                 </div>
               )}
@@ -137,7 +145,7 @@ export function SearchBot() {
         </AnimatePresence>
       </motion.div>
 
-      {/* 2. مستخرج الألوان */}
+      {/* 🎨 كارت مستخرج الألوان */}
       <Link to="/color-extractor" className="block group">
         <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[1.2rem] p-4 border border-emerald-50 dark:border-emerald-900/10 flex items-center justify-between hover:bg-white/90 transition-all shadow-md">
           <div className="flex items-center gap-3">
@@ -150,27 +158,23 @@ export function SearchBot() {
         </div>
       </Link>
 
-      {/* زر المزيد */}
+      {/* 🔘 زر التبديل */}
       <div className="flex justify-center">
         <button onClick={() => setShowMoreTools(!showMoreTools)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-700 transition-colors py-2">
           {showMoreTools ? "إخفاء الأدوات" : "المزيد من الأدوات"}
         </button>
       </div>
 
-      {/* الأدوات الإضافية (تظهر عند الضغط على المزيد) */}
+      {/* 📦 الأدوات الإضافية */}
       <AnimatePresence>
         {showMoreTools && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 10 }} 
-            className="space-y-4"
-          >
-            {/* ✨ ميزة معاينة الخطوط - الآن تظهر هنا أولاً */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="space-y-4">
+            
+            {/* ✍️ كارت معاينة الخطوط */}
             <Link to="/font-preview" className="block group">
               <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl rounded-[1.2rem] p-4 border border-emerald-50 dark:border-emerald-900/10 flex items-center justify-between hover:bg-white/90 transition-all shadow-md">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:rotate-12 transition-transform">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center group-hover:rotate-12 transition-transform">
                     <Type className="h-5 w-5" />
                   </div>
                   <h3 className="font-bold dark:text-emerald-50 text-sm">معاينة الخطوط العربية</h3>
@@ -179,81 +183,54 @@ export function SearchBot() {
               </div>
             </Link>
 
-           {/* 🎬 محمل تيك توك الذكي - الجزء الكامل */}
-<motion.div className={cardStyle}>
-  <div className="flex items-center gap-3 mb-5">
-    <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center shadow-lg">
-      <Video className="h-5 w-5" />
-    </div>
-    <div>
-      <h4 className="font-bold text-sm dark:text-emerald-50">محمل تيك توك الذكي</h4>
-      {isDownloading && <p className="text-[9px] text-emerald-600 animate-pulse">{statusText}</p>}
-    </div>
-  </div>
+            {/* 🎬 كارت محمل تيك توك */}
+            <motion.div className={cardStyle}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center shadow-lg">
+                  <Video className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm dark:text-emerald-50">محمل تيك توك الذكي</h4>
+                  {isDownloading && <p className="text-[9px] text-emerald-600 animate-pulse">{statusText}</p>}
+                </div>
+              </div>
 
-  {/* شريط التقدم أثناء التحميل */}
-  {isDownloading && (
-    <div className="w-full bg-slate-100 dark:bg-black/20 h-1 rounded-full overflow-hidden mb-4">
-      <motion.div 
-        className="h-full bg-emerald-600" 
-        animate={{ width: `${progress}%` }} 
-        transition={{ duration: 0.3 }}
-      />
-    </div>
-  )}
+              {isDownloading && (
+                <div className="w-full bg-slate-100 dark:bg-black/20 h-1 rounded-full overflow-hidden mb-4">
+                  <motion.div className="h-full bg-emerald-600" animate={{ width: `${progress}%` }} />
+                </div>
+              )}
 
-  {!videoResult ? (
-    /* حالة 1: إدخال الرابط */
-    <div className="flex gap-2">
-      <input 
-        value={tiktokUrl} 
-        onChange={(e) => setTiktokUrl(e.target.value)} 
-        placeholder="ضع الرابط هنا..." 
-        className="flex-1 h-12 bg-slate-100/50 dark:bg-black/20 border-none ring-1 ring-emerald-500/10 rounded-xl px-4 text-xs dark:text-emerald-50 outline-none" 
-      />
-      <Button 
-        onClick={handleTikTokDownload} 
-        disabled={isDownloading || !tiktokUrl.trim()} 
-        className="px-6 h-12 bg-emerald-800 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all"
-      >
-        {isDownloading ? <Loader2 className="animate-spin h-4 w-4" /> : "تحميل"}
-      </Button>
-    </div>
-  ) : (
-    /* حالة 2: ظهور النتيجة وأزرار الحفظ والإعادة */
-    <motion.div 
-      initial={{ y: 5, opacity: 0 }} 
-      animate={{ y: 0, opacity: 1 }} 
-      className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-4"
-    >
-      <div className="flex items-center gap-3">
-        <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
-        <p className="text-[10px] text-emerald-800 dark:text-emerald-200 font-bold truncate flex-1">
-          {videoTitle || "تم تجهيز الفيديو بنجاح"}
-        </p>
-      </div>
-      
-      <div className="flex gap-2">
-        {/* زر التحميل الفعلي */}
-        <Button 
-          className="h-11 flex-1 bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-black transition-all"
-          onClick={() => window.open(videoResult, '_blank')}
-        >
-          <Download className="h-4 w-4 ml-2" /> حفظ الفيديو في الاستوديو
-        </Button>
-        
-        {/* زر إعادة التحميل (فيديو آخر) */}
-        <Button 
-          variant="ghost" 
-          className="h-11 px-4 text-emerald-600 hover:bg-emerald-500/10 border border-emerald-500/10 rounded-xl"
-          onClick={resetTikTokState}
-        >
-          <RefreshCcw className="h-4 w-4 ml-1" /> فيديو آخر
-        </Button>
-      </div>
-    </motion.div>
-  )}
-</motion.div>
+              {!videoResult ? (
+                <div className="flex gap-2">
+                  <input 
+                    value={tiktokUrl} 
+                    onChange={(e) => setTiktokUrl(e.target.value)} 
+                    placeholder="ضع الرابط هنا..." 
+                    className="flex-1 h-12 bg-slate-100/50 dark:bg-black/20 border-none ring-1 ring-emerald-500/10 rounded-xl px-4 text-xs dark:text-emerald-50 outline-none" 
+                  />
+                  <Button onClick={handleTikTokDownload} disabled={isDownloading || !tiktokUrl.trim()} className="px-6 h-12 bg-emerald-800 text-white rounded-xl text-xs font-bold">
+                    {isDownloading ? <Loader2 className="animate-spin h-4 w-4" /> : "تحميل"}
+                  </Button>
+                </div>
+              ) : (
+                <motion.div initial={{ y: 5, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <p className="text-[10px] text-emerald-800 dark:text-emerald-200 font-bold truncate flex-1">{videoTitle || "تم تجهيز الفيديو"}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button className="h-11 flex-1 bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg" onClick={() => window.open(videoResult, '_blank')}>
+                      <Download className="h-4 w-4 ml-2" /> حفظ الفيديو
+                    </Button>
+                    <Button variant="ghost" className="h-11 px-4 text-emerald-600 hover:bg-emerald-500/10 border border-emerald-500/10 rounded-xl" onClick={resetTikTokState}>
+                      <RefreshCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
