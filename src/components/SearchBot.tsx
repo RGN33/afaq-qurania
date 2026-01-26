@@ -239,6 +239,18 @@ export function SearchBot() {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* ميزة معاينة الخطوط */}
+<Link to="/font-preview" className="block group">
+  <div className="bg-white/5 dark:bg-[#0a1a14]/60 backdrop-blur-xl rounded-[1.5rem] p-4 border border-white/10 dark:border-emerald-900/20 flex items-center justify-between hover:bg-white/10 transition-all">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center group-hover:rotate-12 transition-transform">
+        <Type className="h-5 w-5" />
+      </div>
+      <h3 className="font-bold dark:text-emerald-50 text-sm">معاينة الخطوط العربية</h3>
+    </div>
+    <ArrowRight className="h-4 w-4 text-emerald-900 rotate-180 group-hover:text-emerald-500 transition-colors" />
+  </div>
+</Link>
     </div>
   );
 }
