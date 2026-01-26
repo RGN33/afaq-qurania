@@ -179,54 +179,81 @@ export function SearchBot() {
               </div>
             </Link>
 
-            {/* محمل تيك توك - يظهر تحت الخطوط */}
-            <motion.div className={cardStyle}>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center shadow-lg">
-                  <Video className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm dark:text-emerald-50">محمل تيك توك الذكي</h4>
-                  {isDownloading && <p className="text-[9px] text-emerald-600 animate-pulse">{statusText}</p>}
-                </div>
-              </div>
+           {/* 🎬 محمل تيك توك الذكي - الجزء الكامل */}
+<motion.div className={cardStyle}>
+  <div className="flex items-center gap-3 mb-5">
+    <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center shadow-lg">
+      <Video className="h-5 w-5" />
+    </div>
+    <div>
+      <h4 className="font-bold text-sm dark:text-emerald-50">محمل تيك توك الذكي</h4>
+      {isDownloading && <p className="text-[9px] text-emerald-600 animate-pulse">{statusText}</p>}
+    </div>
+  </div>
 
-              {isDownloading && (
-                <div className="w-full bg-slate-100 dark:bg-black/20 h-1 rounded-full overflow-hidden mb-4">
-                  <motion.div className="h-full bg-emerald-600" animate={{ width: `${progress}%` }} />
-                </div>
-              )}
+  {/* شريط التقدم أثناء التحميل */}
+  {isDownloading && (
+    <div className="w-full bg-slate-100 dark:bg-black/20 h-1 rounded-full overflow-hidden mb-4">
+      <motion.div 
+        className="h-full bg-emerald-600" 
+        animate={{ width: `${progress}%` }} 
+        transition={{ duration: 0.3 }}
+      />
+    </div>
+  )}
 
-              {!videoResult ? (
-                <div className="flex gap-2">
-                  <input 
-                    value={tiktokUrl} 
-                    onChange={(e) => setTiktokUrl(e.target.value)} 
-                    placeholder="ضع الرابط هنا..." 
-                    className="flex-1 h-12 bg-slate-100/50 dark:bg-black/20 border-none ring-1 ring-emerald-500/10 rounded-xl px-4 text-xs dark:text-emerald-50 outline-none" 
-                  />
-                  <Button onClick={handleTikTokDownload} disabled={isDownloading || !tiktokUrl.trim()} className="px-6 h-12 bg-emerald-800 text-white rounded-xl text-xs font-bold">
-                    تحميل
-                  </Button>
-                </div>
-              ) : (
-                <motion.div initial={{ y: 5, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-emerald-600" />
-                    <p className="text-[10px] text-emerald-800 dark:text-emerald-200 font-bold truncate flex-1">{videoTitle || "تم تجهيز الفيديو"}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button className="h-11 flex-1 bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg" onClick={() => window.open(videoResult, '_blank')}>
-                      <Download className="h-4 w-4 ml-2" /> حفظ الفيديو
-                    </Button>
-                    <Button variant="ghost" className="h-11 px-4 text-emerald-600 hover:bg-emerald-500/5" onClick={resetTikTokState}>
-                      <RefreshCcw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          </motion.div>
+  {!videoResult ? (
+    /* حالة 1: إدخال الرابط */
+    <div className="flex gap-2">
+      <input 
+        value={tiktokUrl} 
+        onChange={(e) => setTiktokUrl(e.target.value)} 
+        placeholder="ضع الرابط هنا..." 
+        className="flex-1 h-12 bg-slate-100/50 dark:bg-black/20 border-none ring-1 ring-emerald-500/10 rounded-xl px-4 text-xs dark:text-emerald-50 outline-none" 
+      />
+      <Button 
+        onClick={handleTikTokDownload} 
+        disabled={isDownloading || !tiktokUrl.trim()} 
+        className="px-6 h-12 bg-emerald-800 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all"
+      >
+        {isDownloading ? <Loader2 className="animate-spin h-4 w-4" /> : "تحميل"}
+      </Button>
+    </div>
+  ) : (
+    /* حالة 2: ظهور النتيجة وأزرار الحفظ والإعادة */
+    <motion.div 
+      initial={{ y: 5, opacity: 0 }} 
+      animate={{ y: 0, opacity: 1 }} 
+      className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 space-y-4"
+    >
+      <div className="flex items-center gap-3">
+        <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
+        <p className="text-[10px] text-emerald-800 dark:text-emerald-200 font-bold truncate flex-1">
+          {videoTitle || "تم تجهيز الفيديو بنجاح"}
+        </p>
+      </div>
+      
+      <div className="flex gap-2">
+        {/* زر التحميل الفعلي */}
+        <Button 
+          className="h-11 flex-1 bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-lg hover:bg-black transition-all"
+          onClick={() => window.open(videoResult, '_blank')}
+        >
+          <Download className="h-4 w-4 ml-2" /> حفظ الفيديو في الاستوديو
+        </Button>
+        
+        {/* زر إعادة التحميل (فيديو آخر) */}
+        <Button 
+          variant="ghost" 
+          className="h-11 px-4 text-emerald-600 hover:bg-emerald-500/10 border border-emerald-500/10 rounded-xl"
+          onClick={resetTikTokState}
+        >
+          <RefreshCcw className="h-4 w-4 ml-1" /> فيديو آخر
+        </Button>
+      </div>
+    </motion.div>
+  )}
+</motion.div>
         )}
       </AnimatePresence>
     </div>
