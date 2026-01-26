@@ -202,95 +202,94 @@ export function SearchBot() {
         </Button>
       </div>
 
-      {/* محمل تيك توك الذكي */}
+   {/* 3. محمل تيك توك - تصميم مدمج وأنيق */}
+<AnimatePresence>
+  {showTools && (
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      className="bg-white/80 backdrop-blur-md rounded-3xl p-6 border border-emerald-100 shadow-sm space-y-5"
+    >
+      {/* العنوان المصغر */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-900 text-white flex items-center justify-center shadow-md">
+          <Video className="h-5 w-5" />
+        </div>
+        <div>
+          <h4 className="font-bold text-slate-800 text-sm">محمل تيك توك الذكي</h4>
+          <p className="text-[10px] text-emerald-600/70 font-medium">أعلى جودة • بدون علامة مائية</p>
+        </div>
+      </div>
+
+      {/* شريط التقدم النحيف */}
       <AnimatePresence>
-        {showMoreTools && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 20 }}
-            className="p-6 glass-card rounded-[2rem] border border-pink-500/20 bg-gradient-to-br from-pink-500/5 via-transparent to-transparent shadow-xl relative overflow-hidden"
-          >
-            <div className="flex flex-col gap-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-right">
-                  <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-white shadow-xl shadow-black/10">
-                    <Video className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm sm:text-base">محمل تيك توك الذكي</h4>
-                    {isDownloading && <p className="text-[10px] text-pink-600 animate-pulse mt-1 font-bold">{statusText}</p>}
-                  </div>
-                </div>
-                {isDownloading && <Loader2 className="h-5 w-5 animate-spin text-pink-500" />}
-              </div>
-
-              {isDownloading && (
-                <div className="w-full bg-pink-500/10 h-2 rounded-full overflow-hidden mb-1">
-                  <motion.div 
-                    className="h-full bg-pink-500" 
-                    initial={{ width: 0 }} 
-                    animate={{ width: `${progress}%` }} 
-                    transition={{ duration: 0.3 }} 
-                  />
-                </div>
-              )}
-
-              {!videoResult ? (
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Input 
-                    value={tiktokUrl} 
-                    onChange={(e) => setTiktokUrl(e.target.value)} 
-                    placeholder="ضع رابط (vt) أو رابط المتصفح..." 
-                    className="h-14 bg-background/30 border-pink-500/10 focus-visible:ring-pink-500/20 text-right text-xs sm:text-sm" 
-                    disabled={isDownloading}
-                  />
-                  <Button 
-                    onClick={handleTikTokDownload} 
-                    disabled={isDownloading || !tiktokUrl} 
-                    className="h-14 bg-[#FE2C55] hover:bg-[#ef2950] font-bold px-10 shadow-lg shadow-pink-500/10 active:scale-95 transition-all"
-                  >
-                    {isDownloading ? <Sparkles className="animate-pulse h-5 w-5" /> : "استخراج"}
-                  </Button>
-                </div>
-              ) : (
-                /* بطاقة النجاح (Success Card) - حل مشكلة الموبايل */
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }} 
-                  animate={{ scale: 1, opacity: 1 }} 
-                  className="p-5 bg-green-500/5 border border-green-500/20 rounded-[1.5rem] flex flex-col gap-4 shadow-inner"
-                >
-                  <div className="flex items-center gap-3 text-green-700 font-bold text-xs">
-                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span>تم تجهيز الفيديو بدون علامة مائية!</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      className="flex-1 h-14 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl shadow-green-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all" 
-                      onClick={() => { 
-                        window.open(videoResult, '_blank', 'noopener,noreferrer'); 
-                        setVideoResult(null); 
-                        setTiktokUrl(''); 
-                      }}
-                    >
-                      <Download className="h-5 w-5" /> تحميل الفيديو الآن
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="h-14 rounded-2xl border-green-500/10 hover:bg-green-500/5" 
-                      onClick={() => { setVideoResult(null); setTiktokUrl(''); }}
-                    >
-                      إلغاء
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
+        {isDownloading && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
+            <div className="flex justify-between text-[9px] font-bold text-emerald-800 uppercase px-1">
+              <span>{statusText}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="w-full bg-emerald-50 h-1.5 rounded-full overflow-hidden border border-emerald-100/50">
+              <motion.div 
+                className="h-full bg-emerald-800" 
+                animate={{ width: `${progress}%` }} 
+                transition={{ duration: 0.3 }}
+              />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!videoResult ? (
+        <div className="flex gap-2">
+          <input 
+            value={tiktokUrl} 
+            onChange={(e) => setTiktokUrl(e.target.value)} 
+            placeholder="ضع الرابط هنا..." 
+            className="flex-1 h-12 rounded-xl bg-slate-50/50 border border-slate-100 px-4 text-left dir-ltr text-xs focus:ring-2 focus:ring-emerald-800 outline-none transition-all shadow-inner" 
+          />
+          <button 
+            onClick={handleTikTokProcess} 
+            disabled={isDownloading || !tiktokUrl} 
+            className="px-6 h-12 rounded-xl bg-emerald-900 text-white font-bold text-xs shadow-md hover:bg-black transition-all active:scale-95 disabled:opacity-50"
+          >
+            {isDownloading ? <Loader2 className="animate-spin h-4 w-4" /> : "تحميل"}
+          </button>
+        </div>
+      ) : (
+        <motion.div 
+          initial={{ scale: 0.95 }} 
+          animate={{ scale: 1 }} 
+          className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-emerald-800 shadow-sm">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div className="max-w-[120px] sm:max-w-[200px]">
+              <p className="text-[10px] font-bold text-emerald-900 truncate">تم التجهيز بنجاح</p>
+              <p className="text-[9px] text-emerald-700/60 truncate">{videoResult?.videoInfo?.title}</p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => window.open(videoResult.downloadLink, '_blank')} 
+            className="h-10 px-4 bg-emerald-800 text-white rounded-lg font-bold text-[10px] flex items-center gap-2 hover:bg-black transition-all shadow-sm"
+          >
+            <Download className="h-4 w-4" /> حفظ الفيديو
+          </button>
+        </motion.div>
+      )}
+
+      {/* تذييل بسيط */}
+      <div className="text-center">
+        <span className="text-[9px] text-slate-400 font-medium px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
+          ✨ يدعم الروابط المختصرة تلقائياً
+        </span>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
     </div>
   );
 }
